@@ -1,8 +1,7 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Páginas públicas
-import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
 
@@ -31,7 +30,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Rotas públicas */}
-      <Route path="/" element={<Index />} />
+      <Route path="/" element={<Navigate to="/auth" replace />} />
       <Route path="/auth" element={<Auth />} />
       
       {/* Rotas de administrador */}
