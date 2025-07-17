@@ -10,6 +10,7 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import ProdutosPage from '@/pages/admin/ProdutosPage';
 import ProdutoFormPage from '@/pages/admin/ProdutoFormPage';
 import AddAdminPage from '@/pages/admin/AddAdminPage';
+import UsuariosPage from '@/pages/admin/UsuariosPage';
 
 // Páginas de usuário
 import UserDashboard from '@/pages/UserDashboard';
@@ -64,6 +65,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute requiredRole="admin">
             <ProdutoFormPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/admin/usuarios" 
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <UsuariosPage />
           </ProtectedRoute>
         } 
       />

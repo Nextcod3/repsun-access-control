@@ -156,6 +156,21 @@ export const desativarUsuario = async (id: string): Promise<Usuario> => {
 };
 
 /**
+ * Exclui um usuário e todos os seus dados relacionados (apenas para admin)
+ */
+export const excluirUsuario = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('users')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Erro ao excluir usuário:', error);
+    throw new Error('Erro ao excluir usuário');
+  }
+};
+
+/**
  * Verifica se as credenciais do usuário são válidas
  */
 export const verificarCredenciais = async (
