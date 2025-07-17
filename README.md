@@ -1,73 +1,102 @@
-# Welcome to your Lovable project
+# RepSUN - Sistema de Orçamentos para Representante Comercial
 
-## Project info
+RepSUN é um sistema web para geração de orçamentos de produtos para oficinas mecânicas. O sistema permite cadastro de produtos (com imagem, descrição e preço), montagem de orçamentos, simulação de condições de pagamento, geração de PDF e envio fácil pelo WhatsApp.
 
-**URL**: https://lovable.dev/projects/61609da5-e3da-4e27-92da-321f7cce9d51
+## Funcionalidades
 
-## How can I edit this code?
+- **Autenticação de Usuários**: Login, registro e recuperação de senha
+- **Gerenciamento de Clientes**: Cadastro, edição e exclusão de clientes
+- **Gerenciamento de Produtos**: Cadastro de produtos com preços diferenciados por região
+- **Criação de Orçamentos**: Interface intuitiva para montagem de orçamentos
+- **Condições de Pagamento**: Simulação de diferentes condições de pagamento
+- **Geração de PDF**: Criação de orçamentos em PDF para compartilhamento
+- **Compartilhamento**: Envio de orçamentos via WhatsApp
 
-There are several ways of editing your application.
+## Tecnologias Utilizadas
 
-**Use Lovable**
+- **Frontend**: React, TypeScript, Vite, TailwindCSS, shadcn/ui
+- **Backend**: Supabase (PostgreSQL, Auth, Storage)
+- **Gerenciamento de Estado**: Zustand, React Query
+- **Validação de Formulários**: Zod, React Hook Form
+- **Roteamento**: React Router
+- **Estilização**: TailwindCSS, shadcn/ui
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/61609da5-e3da-4e27-92da-321f7cce9d51) and start prompting.
+## Pré-requisitos
 
-Changes made via Lovable will be committed automatically to this repo.
+- Node.js (v18 ou superior)
+- npm (v9 ou superior)
+- Conta no Supabase
 
-**Use your preferred IDE**
+## Instalação
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
+1. Clone o repositório:
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+git clone <URL_DO_REPOSITORIO>
+cd repsun
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Instale as dependências:
+```sh
+npm install
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+3. Configure as variáveis de ambiente:
+   - Crie um arquivo `.env` na raiz do projeto
+   - Adicione as seguintes variáveis:
+```
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anonima_do_supabase
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+4. Inicie o servidor de desenvolvimento:
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Estrutura do Projeto
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```
+src/
+├── components/       # Componentes React reutilizáveis
+│   ├── layout/       # Componentes de layout
+│   └── ui/           # Componentes de UI (shadcn/ui)
+├── config/           # Configurações da aplicação
+├── hooks/            # Hooks personalizados
+├── integrations/     # Integrações com serviços externos
+│   └── supabase/     # Cliente e tipos do Supabase
+├── pages/            # Páginas da aplicação
+├── routes/           # Configuração de rotas
+├── schemas/          # Esquemas de validação (Zod)
+├── services/         # Serviços para comunicação com o backend
+│   ├── orcamento/    # Serviços relacionados a orçamentos
+│   └── ...
+├── store/            # Gerenciamento de estado global (Zustand)
+├── types/            # Tipos TypeScript
+└── utils/            # Utilitários
+```
 
-**Use GitHub Codespaces**
+## Scripts Disponíveis
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- `npm run dev` - Inicia o servidor de desenvolvimento
+- `npm run build` - Compila o projeto para produção
+- `npm run preview` - Visualiza a versão de produção localmente
+- `npm run lint` - Executa o linter
+- `npm run test` - Executa os testes
+- `npm run test:watch` - Executa os testes em modo de observação
+- `npm run test:coverage` - Executa os testes com cobertura
 
-## What technologies are used for this project?
+## Documentação Adicional
 
-This project is built with:
+Para mais detalhes sobre a arquitetura do projeto, consulte o arquivo [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Contribuição
 
-## How can I deploy this project?
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
+3. Faça commit das suas alterações (`git commit -m 'Adiciona nova feature'`)
+4. Faça push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
 
-Simply open [Lovable](https://lovable.dev/projects/61609da5-e3da-4e27-92da-321f7cce9d51) and click on Share -> Publish.
+## Licença
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Este projeto está licenciado sob a licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.

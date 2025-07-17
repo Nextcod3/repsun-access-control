@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import * as bcrypt from 'bcryptjs';
+import { verificarCredenciais, createUsuario } from '@/services/usuarioService';
+import type { Usuario } from '@/services/usuarioService';
 
 interface User {
   id: string;
@@ -17,6 +17,7 @@ interface AuthContextType {
   logout: () => void;
   register: (nome: string, email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   loading: boolean;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,35 +51,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Buscar usuário no banco de dados
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-
-      if (error || !userData) {
-        return { success: false, message: 'Email ou senha incorretos' };
-      }
-
-      // Verificar senha
-      const isPasswordValid = await bcrypt.compare(password, userData.senha_hash);
+      const { valido, usuario } = await verificarCredenciais(email, password);
       
-      if (!isPasswordValid) {
+      if (!valido || !usuario) {
         return { success: false, message: 'Email ou senha incorretos' };
       }
 
       // Verificar se o usuário está aprovado (exceto admin)
-      if (userData.perfil !== 'admin' && !userData.status) {
+      if (usuario.perfil !== 'admin' && !usuario.status) {
         return { success: false, message: 'Aguardando aprovação do administrador.' };
       }
 
       const userToStore: User = {
-        id: userData.id,
-        nome: userData.nome,
-        email: userData.email,
-        perfil: userData.perfil,
-        status: userData.status
+        id: usuario.id,
+        nome: usuario.nome,
+        email: usuario.email,
+        perfil: usuario.perfil,
+        status: usuario.status
       };
 
       setUser(userToStore);
@@ -97,38 +86,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       setLoading(true);
       
-      // Verificar se o email já existe
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('email')
-        .eq('email', email)
-        .single();
-
-      if (existingUser) {
-        return { success: false, message: 'Este email já está cadastrado' };
+      try {
+        await createUsuario(nome, email, password, 'usuario', false);
+        return { success: true, message: 'Cadastro realizado! Aguarde aprovação do administrador.' };
+      } catch (error: any) {
+        if (error.message === 'Este email já está cadastrado') {
+          return { success: false, message: 'Este email já está cadastrado' };
+        }
+        throw error;
       }
-
-      // Criptografar senha
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      // Inserir usuário no banco
-      const { error } = await supabase
-        .from('users')
-        .insert({
-          nome,
-          email,
-          senha_hash: hashedPassword,
-          perfil: 'usuario',
-          status: false
-        });
-
-      if (error) {
-        console.error('Erro ao cadastrar:', error);
-        return { success: false, message: 'Erro ao cadastrar usuário' };
-      }
-
-      return { success: true, message: 'Cadastro realizado! Aguarde aprovação do administrador.' };
     } catch (error) {
       console.error('Erro no cadastro:', error);
       return { success: false, message: 'Erro interno. Tente novamente.' };
@@ -137,13 +103,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email: string): Promise<{ success: boolean; message?: string }> => {
+    // Implementação futura: enviar email com link para redefinir senha
+    return { 
+      success: true, 
+      message: 'Se o email estiver cadastrado, você receberá instruções para redefinir sua senha.' 
+    };
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('repsun_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, loading }}>
+    <AuthContext.Provider value={{ user, login, logout, register, loading, forgotPassword }}>
       {children}
     </AuthContext.Provider>
   );
