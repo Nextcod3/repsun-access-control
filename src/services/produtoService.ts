@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Tables } from '@/types/database.types';
+import { API_URL, SUPABASE_ANON_KEY } from '@/config/env';
 
 export type Produto = Tables<'produtos'>;
 
@@ -60,37 +61,79 @@ export const searchProdutos = async (query: string): Promise<Produto[]> => {
  * Cria um novo produto (apenas admin)
  */
 export const createProduto = async (produto: Omit<Produto, 'id' | 'created_at' | 'updated_at'>): Promise<Produto> => {
-  const { data, error } = await supabase
-    .from('produtos')
-    .insert(produto)
-    .select()
-    .single();
+  try {
+    console.log('Tentando criar produto:', produto);
+    
+    // Usar o cliente Supabase com autenticação adequada
+    const { data, error } = await supabase
+      .from('produtos')
+      .insert(produto)
+      .select()
+      .single();
 
-  if (error) {
-    console.error('Erro ao criar produto:', error);
-    throw new Error('Erro ao criar produto');
+    if (error) {
+      console.error('Erro ao criar produto (detalhes):', error);
+      
+      // Se for erro de RLS, verificar se o usuário tem permissão adequada
+      if (error.message?.includes('row-level security') || 
+          error.message?.includes('permission denied')) {
+        
+        console.log('Erro de RLS detectado. Verifique se o usuário tem permissão de administrador.');
+        throw new Error('Permissão negada: apenas administradores podem criar produtos');
+      }
+      
+      throw new Error(`Erro ao criar produto: ${error.message}`);
+    }
+
+    console.log('Produto criado com sucesso:', data);
+    return data;
+  } catch (error: any) {
+    console.error('Exceção ao criar produto:', error);
+    throw error;
   }
-
-  return data;
 };
 
 /**
  * Atualiza um produto existente (apenas admin)
  */
 export const updateProduto = async (id: string, produto: Partial<Omit<Produto, 'id' | 'created_at' | 'updated_at'>>): Promise<Produto> => {
-  const { data, error } = await supabase
-    .from('produtos')
-    .update({ ...produto, updated_at: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
+  try {
+    console.log('Tentando atualizar produto:', { id, produto });
+    
+    // Adicionar timestamp de atualização
+    const produtoComTimestamp = { 
+      ...produto, 
+      updated_at: new Date().toISOString() 
+    };
+    
+    // Atualizar usando o cliente Supabase
+    const { data, error } = await supabase
+      .from('produtos')
+      .update(produtoComTimestamp)
+      .eq('id', id)
+      .select()
+      .single();
 
-  if (error) {
-    console.error('Erro ao atualizar produto:', error);
-    throw new Error('Erro ao atualizar produto');
+    if (error) {
+      console.error('Erro ao atualizar produto:', error);
+      
+      // Se for erro de RLS, verificar se o usuário tem permissão adequada
+      if (error.message?.includes('row-level security') || 
+          error.message?.includes('permission denied')) {
+        
+        console.log('Erro de RLS detectado. Verifique se o usuário tem permissão de administrador.');
+        throw new Error('Permissão negada: apenas administradores podem atualizar produtos');
+      }
+      
+      throw new Error(`Erro ao atualizar produto: ${error.message}`);
+    }
+
+    console.log('Produto atualizado com sucesso:', data);
+    return data;
+  } catch (error: any) {
+    console.error('Exceção ao atualizar produto:', error);
+    throw error;
   }
-
-  return data;
 };
 
 /**
@@ -104,35 +147,30 @@ export const deleteProduto = async (id: string): Promise<void> => {
 
   if (error) {
     console.error('Erro ao excluir produto:', error);
+    
+    // Se for erro de RLS, verificar se o usuário tem permissão adequada
+    if (error.message?.includes('row-level security') || 
+        error.message?.includes('permission denied')) {
+      
+      throw new Error('Permissão negada: apenas administradores podem excluir produtos');
+    }
+    
     throw new Error('Erro ao excluir produto');
   }
 };
 
 /**
- * Faz upload de uma imagem para o produto
+ * Verifica se uma URL de imagem é válida
  */
-export const uploadProdutoImagem = async (file: File, produtoId: string): Promise<string> => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${produtoId}.${fileExt}`;
-  const filePath = `produtos/${fileName}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from('produtos')
-    .upload(filePath, file, {
-      cacheControl: '3600',
-      upsert: true
-    });
-
-  if (uploadError) {
-    console.error('Erro ao fazer upload da imagem:', uploadError);
-    throw new Error('Erro ao fazer upload da imagem');
+export const verificarImagemUrl = async (url: string): Promise<boolean> => {
+  try {
+    const response = await fetch(url, { method: 'HEAD' });
+    const contentType = response.headers.get('content-type');
+    return contentType?.startsWith('image/') || false;
+  } catch (error) {
+    console.error('Erro ao verificar URL da imagem:', error);
+    return false;
   }
-
-  const { data } = supabase.storage
-    .from('produtos')
-    .getPublicUrl(filePath);
-
-  return data.publicUrl;
 };
 
 /**
