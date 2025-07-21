@@ -1,14 +1,13 @@
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/types/database.types';
+import { customSupabase, type Produto } from '@/integrations/supabase/custom-client';
 import { API_URL, SUPABASE_ANON_KEY } from '@/config/env';
 
-export type Produto = Tables<'produtos'>;
+export type { Produto };
 
 /**
  * Busca todos os produtos
  */
 export const getProdutos = async (): Promise<Produto[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('produtos')
     .select('*')
     .order('nome');
@@ -25,7 +24,7 @@ export const getProdutos = async (): Promise<Produto[]> => {
  * Busca um produto pelo ID
  */
 export const getProdutoById = async (id: string): Promise<Produto | null> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('produtos')
     .select('*')
     .eq('id', id)
@@ -43,7 +42,7 @@ export const getProdutoById = async (id: string): Promise<Produto | null> => {
  * Busca produtos por nome
  */
 export const searchProdutos = async (query: string): Promise<Produto[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('produtos')
     .select('*')
     .ilike('nome', `%${query}%`)
@@ -65,7 +64,7 @@ export const createProduto = async (produto: Omit<Produto, 'id' | 'created_at' |
     console.log('Tentando criar produto:', produto);
     
     // Usar o cliente Supabase com autenticação adequada
-    const { data, error } = await supabase
+    const { data, error } = await customSupabase
       .from('produtos')
       .insert(produto)
       .select()
@@ -107,7 +106,7 @@ export const updateProduto = async (id: string, produto: Partial<Omit<Produto, '
     };
     
     // Atualizar usando o cliente Supabase
-    const { data, error } = await supabase
+    const { data, error } = await customSupabase
       .from('produtos')
       .update(produtoComTimestamp)
       .eq('id', id)
@@ -140,7 +139,7 @@ export const updateProduto = async (id: string, produto: Partial<Omit<Produto, '
  * Exclui um produto (apenas admin)
  */
 export const deleteProduto = async (id: string): Promise<void> => {
-  const { error } = await supabase
+  const { error } = await customSupabase
     .from('produtos')
     .delete()
     .eq('id', id);
@@ -177,7 +176,7 @@ export const verificarImagemUrl = async (url: string): Promise<boolean> => {
  * Obtém o preço do produto com base na UF do cliente
  */
 export const getProdutoPreco = async (produtoId: string, uf: string): Promise<number> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .rpc('get_produto_preco', {
       produto_id: produtoId,
       uf: uf

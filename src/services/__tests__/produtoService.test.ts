@@ -1,23 +1,3 @@
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { describe } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { describe } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { describe } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { describe } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { describe } from 'node:test';
-import { beforeEach } from 'node:test';
-import { describe } from 'node:test';
 import { 
   getProdutos, 
   getProdutoById, 
@@ -59,6 +39,7 @@ describe('produtoService', () => {
       preco_sul_sudeste: 110, 
       preco_outros: 120,
       imagem_url: 'http://example.com/image1.jpg',
+      usuario_id: 'user-1',
       created_at: '2025-07-19T00:00:00Z',
       updated_at: '2025-07-19T00:00:00Z'
     },
@@ -70,6 +51,7 @@ describe('produtoService', () => {
       preco_sul_sudeste: 210, 
       preco_outros: 220,
       imagem_url: null,
+      usuario_id: 'user-1',
       created_at: '2025-07-19T00:00:00Z',
       updated_at: '2025-07-19T00:00:00Z'
     }
@@ -169,7 +151,9 @@ describe('produtoService', () => {
       descricao: 'Nova Descrição',
       preco_sp: 300,
       preco_sul_sudeste: 310,
-      preco_outros: 320
+      preco_outros: 320,
+      usuario_id: 'user-1',
+      imagem_url: 'http://example.com/image.jpg'
     };
 
     it('deve criar um novo produto', async () => {
@@ -224,9 +208,8 @@ describe('produtoService', () => {
       await expect(getProdutoPreco('1', 'SP')).rejects.toThrow('Erro ao obter preço do produto');
     });
   });
-});
-  describ
-e('verificarImagemUrl', () => {
+
+  describe('verificarImagemUrl', () => {
     it('deve retornar true para uma URL de imagem válida', async () => {
       (global.fetch as jest.Mock).mockResolvedValue({
         headers: {
@@ -260,3 +243,4 @@ e('verificarImagemUrl', () => {
       expect(result).toBe(false);
     });
   });
+});

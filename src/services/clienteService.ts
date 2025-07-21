@@ -1,13 +1,12 @@
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/types/database.types';
+import { customSupabase, type Cliente } from '@/integrations/supabase/custom-client';
 
-export type Cliente = Tables<'clientes'>;
+export type { Cliente };
 
 /**
  * Busca todos os clientes
  */
 export const getClientes = async (): Promise<Cliente[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('clientes')
     .select('*')
     .order('nome');
@@ -24,7 +23,7 @@ export const getClientes = async (): Promise<Cliente[]> => {
  * Busca um cliente pelo ID
  */
 export const getClienteById = async (id: string): Promise<Cliente | null> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('clientes')
     .select('*')
     .eq('id', id)
@@ -42,7 +41,7 @@ export const getClienteById = async (id: string): Promise<Cliente | null> => {
  * Busca clientes por nome ou documento
  */
 export const searchClientes = async (query: string): Promise<Cliente[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('clientes')
     .select('*')
     .or(`nome.ilike.%${query}%,documento.ilike.%${query}%`)
@@ -60,7 +59,7 @@ export const searchClientes = async (query: string): Promise<Cliente[]> => {
  * Cria um novo cliente
  */
 export const createCliente = async (cliente: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>): Promise<Cliente> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('clientes')
     .insert(cliente)
     .select()
@@ -81,7 +80,7 @@ export const createCliente = async (cliente: Omit<Cliente, 'id' | 'created_at' |
  * Atualiza um cliente existente
  */
 export const updateCliente = async (id: string, cliente: Partial<Omit<Cliente, 'id' | 'created_at' | 'updated_at'>>): Promise<Cliente> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('clientes')
     .update({ ...cliente, updated_at: new Date().toISOString() })
     .eq('id', id)
@@ -103,7 +102,7 @@ export const updateCliente = async (id: string, cliente: Partial<Omit<Cliente, '
  * Exclui um cliente
  */
 export const deleteCliente = async (id: string): Promise<void> => {
-  const { error } = await supabase
+  const { error } = await customSupabase
     .from('clientes')
     .delete()
     .eq('id', id);

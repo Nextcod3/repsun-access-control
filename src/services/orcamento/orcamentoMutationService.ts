@@ -1,12 +1,8 @@
-import { supabase } from '@/integrations/supabase/client';
+import { customSupabase, type Orcamento, type ItemOrcamento, type CondicaoPagamento } from '@/integrations/supabase/custom-client';
 import { TABLES, ORCAMENTO_STATUS } from '@/utils/constants';
 import { handleSupabaseError } from '@/utils/errorHandler';
-import type { Tables } from '@/types/database.types';
 
-export type Orcamento = Tables<'orcamentos'>;
-export type ItemOrcamento = Tables<'itens_orcamento'>;
-export type CondicaoPagamento = Tables<'condicoes_pagamento'>;
-export type OrcamentoPDF = Tables<'orcamentos_pdf'>;
+export type { Orcamento, ItemOrcamento, CondicaoPagamento };
 
 /**
  * Cria um novo orçamento
@@ -17,134 +13,138 @@ export const createOrcamento = async (
   observacoes?: string
 ): Promise<Orcamento> => {
   try {
-    const { data, error } = await supabase
-      .from(TABLES.ORCAMENTOS)
+    const { data, error } = await customSupabase
+      .from('orcamentos')
       .insert({
         cliente_id: clienteId,
         usuario_id: usuarioId,
         observacoes,
-        status: ORCAMENTO_STATUS.RASCUNHO
+        status: 'rascunho'
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao criar orçamento:', error);
+      throw handleSupabaseError(error);
+    }
+
     return data;
   } catch (error) {
-    throw handleSupabaseError(error);
+    console.error('Erro ao criar orçamento:', error);
+    throw error;
   }
 };
 
 /**
- * Adiciona um item ao orçamento
+ * Adiciona item ao orçamento
  */
-export const addItemOrcamento = async (
-  orcamentoId: string,
-  produtoId: string,
-  quantidade: number,
-  valorUnitario: number
-): Promise<ItemOrcamento> => {
+export const addItemOrcamento = async (item: {
+  orcamento_id: string;
+  produto_id: string;
+  quantidade: number;
+  valor_unitario: number;
+  subtotal: number;
+}): Promise<ItemOrcamento> => {
   try {
-    const subtotal = quantidade * valorUnitario;
-
-    const { data, error } = await supabase
-      .from(TABLES.ITENS_ORCAMENTO)
-      .insert({
-        orcamento_id: orcamentoId,
-        produto_id: produtoId,
-        quantidade,
-        valor_unitario: valorUnitario,
-        subtotal
-      })
+    const { data, error } = await customSupabase
+      .from('itens_orcamento')
+      .insert(item)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao adicionar item ao orçamento:', error);
+      throw handleSupabaseError(error);
+    }
+
     return data;
   } catch (error) {
-    throw handleSupabaseError(error);
+    console.error('Erro ao adicionar item ao orçamento:', error);
+    throw error;
   }
 };
 
 /**
- * Atualiza um item do orçamento
+ * Atualiza item do orçamento
  */
 export const updateItemOrcamento = async (
-  id: string,
-  quantidade: number,
-  valorUnitario: number
+  itemId: string,
+  updates: {
+    quantidade?: number;
+    valor_unitario?: number;
+    subtotal?: number;
+  }
 ): Promise<ItemOrcamento> => {
   try {
-    const subtotal = quantidade * valorUnitario;
-
-    const { data, error } = await supabase
-      .from(TABLES.ITENS_ORCAMENTO)
-      .update({
-        quantidade,
-        valor_unitario: valorUnitario,
-        subtotal,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
+    const { data, error } = await customSupabase
+      .from('itens_orcamento')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', itemId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao atualizar item do orçamento:', error);
+      throw handleSupabaseError(error);
+    }
+
     return data;
   } catch (error) {
-    throw handleSupabaseError(error);
+    console.error('Erro ao atualizar item do orçamento:', error);
+    throw error;
   }
 };
 
 /**
- * Remove um item do orçamento
+ * Remove item do orçamento
  */
-export const removeItemOrcamento = async (id: string): Promise<void> => {
+export const removeItemOrcamento = async (itemId: string): Promise<void> => {
   try {
-    const { error } = await supabase
-      .from(TABLES.ITENS_ORCAMENTO)
+    const { error } = await customSupabase
+      .from('itens_orcamento')
       .delete()
-      .eq('id', id);
+      .eq('id', itemId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao remover item do orçamento:', error);
+      throw handleSupabaseError(error);
+    }
   } catch (error) {
-    throw handleSupabaseError(error);
+    console.error('Erro ao remover item do orçamento:', error);
+    throw error;
   }
 };
 
 /**
- * Adiciona uma condição de pagamento ao orçamento
+ * Adiciona condição de pagamento ao orçamento
  */
-export const addCondicaoPagamento = async (
-  condicao: Omit<CondicaoPagamento, 'id' | 'created_at' | 'updated_at'>
-): Promise<CondicaoPagamento> => {
+export const addCondicaoPagamento = async (condicao: {
+  orcamento_id: string;
+  descricao: string;
+  valor_entrada?: number | null;
+  num_parcelas?: number | null;
+  taxa_juros?: number | null;
+  valor_parcela?: number | null;
+  valor_total: number;
+  metodo?: 'dinheiro' | 'cartao_credito' | 'cartao_debito' | 'pix' | 'boleto' | null;
+}): Promise<CondicaoPagamento> => {
   try {
-    const { data, error } = await supabase
-      .from(TABLES.CONDICOES_PAGAMENTO)
+    const { data, error } = await customSupabase
+      .from('condicoes_pagamento')
       .insert(condicao)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao adicionar condição de pagamento:', error);
+      throw handleSupabaseError(error);
+    }
+
     return data;
   } catch (error) {
-    throw handleSupabaseError(error);
-  }
-};
-
-/**
- * Remove uma condição de pagamento
- */
-export const removeCondicaoPagamento = async (id: string): Promise<void> => {
-  try {
-    const { error } = await supabase
-      .from(TABLES.CONDICOES_PAGAMENTO)
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-  } catch (error) {
-    throw handleSupabaseError(error);
+    console.error('Erro ao adicionar condição de pagamento:', error);
+    throw error;
   }
 };
 
@@ -152,71 +152,97 @@ export const removeCondicaoPagamento = async (id: string): Promise<void> => {
  * Atualiza o status do orçamento
  */
 export const updateOrcamentoStatus = async (
-  id: string,
-  status: Orcamento['status'],
-  observacoes?: string
+  orcamentoId: string,
+  status: 'rascunho' | 'enviado' | 'aprovado' | 'rejeitado'
 ): Promise<Orcamento> => {
   try {
-    const updates: Partial<Orcamento> = {
+    const updateData: any = {
       status,
       updated_at: new Date().toISOString()
     };
 
-    if (observacoes) {
-      updates.observacoes = observacoes;
+    // Adicionar timestamp específico baseado no status
+    if (status === 'enviado') {
+      updateData.data_envio = new Date().toISOString();
+    } else if (status === 'aprovado') {
+      updateData.data_aprovacao = new Date().toISOString();
     }
 
-    // Atualizar datas com base no status
-    if (status === ORCAMENTO_STATUS.ENVIADO) {
-      updates.data_envio = new Date().toISOString();
-    } else if (status === ORCAMENTO_STATUS.APROVADO) {
-      updates.data_aprovacao = new Date().toISOString();
-    }
-
-    const { data, error } = await supabase
-      .from(TABLES.ORCAMENTOS)
-      .update(updates)
-      .eq('id', id)
+    const { data, error } = await customSupabase
+      .from('orcamentos')
+      .update(updateData)
+      .eq('id', orcamentoId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao atualizar status do orçamento:', error);
+      throw handleSupabaseError(error);
+    }
+
     return data;
   } catch (error) {
-    throw handleSupabaseError(error);
+    console.error('Erro ao atualizar status do orçamento:', error);
+    throw error;
   }
 };
 
 /**
- * Salva o PDF do orçamento
+ * Atualiza um orçamento
  */
-export const saveOrcamentoPDF = async (
+export const updateOrcamento = async (
   orcamentoId: string,
-  url: string
-): Promise<OrcamentoPDF> => {
+  updates: Partial<Omit<Orcamento, 'id' | 'numero' | 'created_at' | 'updated_at'>>
+): Promise<Orcamento> => {
   try {
-    // Verificar se já existe um PDF para este orçamento
-    const { data: existingPdfs } = await supabase
-      .from(TABLES.ORCAMENTOS_PDF)
-      .select('*')
-      .eq('orcamento_id', orcamentoId)
-      .order('versao', { ascending: false });
-
-    const versao = existingPdfs && existingPdfs.length > 0 ? existingPdfs[0].versao + 1 : 1;
-
-    const { data, error } = await supabase
-      .from(TABLES.ORCAMENTOS_PDF)
-      .insert({
-        orcamento_id: orcamentoId,
-        url,
-        versao
-      })
+    const { data, error } = await customSupabase
+      .from('orcamentos')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', orcamentoId)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Erro ao atualizar orçamento:', error);
+      throw handleSupabaseError(error);
+    }
+
     return data;
   } catch (error) {
-    throw handleSupabaseError(error);
+    console.error('Erro ao atualizar orçamento:', error);
+    throw error;
+  }
+};
+
+/**
+ * Exclui um orçamento e todos os seus itens relacionados
+ */
+export const deleteOrcamento = async (orcamentoId: string): Promise<void> => {
+  try {
+    // Primeiro, excluir itens do orçamento
+    await customSupabase
+      .from('itens_orcamento')
+      .delete()
+      .eq('orcamento_id', orcamentoId);
+
+    // Excluir condições de pagamento
+    await customSupabase
+      .from('condicoes_pagamento')
+      .delete()
+      .eq('orcamento_id', orcamentoId);
+
+    // Por fim, excluir o orçamento
+    const { error } = await customSupabase
+      .from('orcamentos')
+      .delete()
+      .eq('id', orcamentoId);
+
+    if (error) {
+      console.error('Erro ao excluir orçamento:', error);
+      throw handleSupabaseError(error);
+    }
+  } catch (error) {
+    console.error('Erro ao excluir orçamento:', error);
+    throw error;
   }
 };

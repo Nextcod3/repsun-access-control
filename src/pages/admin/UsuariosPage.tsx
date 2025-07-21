@@ -182,7 +182,7 @@ const UsuariosPage: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <Badge 
-                          variant={usuario.status ? 'success' : 'destructive'}
+                          variant={usuario.status ? 'default' : 'destructive'}
                           className={usuario.status ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
                         >
                           {usuario.status ? 'Ativo' : 'Inativo'}

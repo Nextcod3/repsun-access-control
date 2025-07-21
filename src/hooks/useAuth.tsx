@@ -190,7 +190,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             nome,
             email,
             perfil: 'usuario',
-            status: false
+            status: false,
+            senha_hash: '' // Não usado para Supabase Auth, mas requerido pelo schema
           });
         
         if (insertError) {
