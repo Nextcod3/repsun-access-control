@@ -1,29 +1,33 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link, useNavigate } from 'react-router-dom';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { UserSidebar } from '@/components/layout/UserSidebar';
+import { StatCard } from '@/components/ui/stat-card';
+import { ChartPlaceholder } from '@/components/ui/chart-placeholder';
+import { ModernCard } from '@/components/ui/modern-card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { 
-  LogOut, 
   FileText, 
   Clock, 
   CheckCircle, 
-  XCircle, 
   Users, 
   Package, 
   PlusCircle,
-  Search,
+  TrendingUp,
+  Calendar,
   BarChart3,
-  Calendar
+  ArrowRight,
+  XCircle
 } from 'lucide-react';
 import { getOrcamentos } from '@/services/orcamentoService';
 import { getClientes } from '@/services/clienteService';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
+import { formatCurrency } from '@/utils/format';
 
 const UserDashboard = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -31,7 +35,8 @@ const UserDashboard = () => {
     pendentes: 0,
     aprovados: 0,
     rejeitados: 0,
-    totalClientes: 0
+    totalClientes: 0,
+    valorTotal: 0
   });
   const [recentOrcamentos, setRecentOrcamentos] = useState<any[]>([]);
 
@@ -40,26 +45,25 @@ const UserDashboard = () => {
       try {
         setLoading(true);
         
-        // Buscar orçamentos
         const orcamentos = await getOrcamentos();
-        
-        // Buscar clientes
         const clientes = await getClientes();
         
-        // Calcular estatísticas
         const pendentes = orcamentos.filter(o => o.status === 'enviado').length;
         const aprovados = orcamentos.filter(o => o.status === 'aprovado').length;
         const rejeitados = orcamentos.filter(o => o.status === 'rejeitado').length;
+        const valorTotal = orcamentos
+          .filter(o => o.status === 'aprovado')
+          .reduce((sum, o) => sum + (o.valor_total || 0), 0);
         
         setStats({
           totalOrcamentos: orcamentos.length,
           pendentes,
           aprovados,
           rejeitados,
-          totalClientes: clientes.length
+          totalClientes: clientes.length,
+          valorTotal
         });
         
-        // Obter orçamentos recentes
         setRecentOrcamentos(
           orcamentos
             .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
@@ -81,29 +85,21 @@ const UserDashboard = () => {
     fetchData();
   }, []);
 
-  const handleNovoOrcamento = () => {
-    navigate('/orcamentos/novo');
-  };
-
-  const getStatusColor = (status: string | null) => {
+  const getStatusVariant = (status: string | null) => {
     switch (status) {
-      case 'rascunho': return 'text-gray-500';
-      case 'enviado': return 'text-blue-500';
-      case 'aprovado': return 'text-green-500';
-      case 'rejeitado': return 'text-red-500';
-      case 'cancelado': return 'text-orange-500';
-      default: return 'text-gray-500';
+      case 'aprovado': return 'default';
+      case 'enviado': return 'secondary';
+      case 'rejeitado': return 'destructive';
+      default: return 'outline';
     }
   };
 
   const getStatusIcon = (status: string | null) => {
     switch (status) {
-      case 'rascunho': return <FileText className="h-4 w-4" />;
-      case 'enviado': return <Clock className="h-4 w-4" />;
-      case 'aprovado': return <CheckCircle className="h-4 w-4" />;
-      case 'rejeitado': return <XCircle className="h-4 w-4" />;
-      case 'cancelado': return <XCircle className="h-4 w-4" />;
-      default: return <FileText className="h-4 w-4" />;
+      case 'aprovado': return <CheckCircle className="h-3 w-3" />;
+      case 'enviado': return <Clock className="h-3 w-3" />;
+      case 'rejeitado': return <XCircle className="h-3 w-3" />;
+      default: return <FileText className="h-3 w-3" />;
     }
   };
 
@@ -113,252 +109,243 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">RepSUN</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Bem-vindo, {user?.nome}</span>
-              <Button variant="outline" onClick={logout} className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Sair
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-background to-background/80">
+        <UserSidebar />
+        
+        <main className="flex-1 overflow-auto">
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
+            <div className="flex h-16 items-center gap-4 px-6">
+              <SidebarTrigger />
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-cyan-600 bg-clip-text text-transparent">
+                  Dashboard
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Bem-vindo de volta, {user?.nome}
+                </p>
+              </div>
+              <Button asChild className="bg-gradient-to-r from-green-500 to-cyan-500 hover:opacity-90">
+                <Link to="/orcamentos/novo" className="flex items-center gap-2">
+                  <PlusCircle className="h-4 w-4" />
+                  Novo Orçamento
+                </Link>
               </Button>
             </div>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h2>
-            <p className="text-gray-600">Gerencie seus orçamentos e propostas comerciais</p>
-          </div>
-          <Button 
-            onClick={handleNovoOrcamento}
-            className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Novo Orçamento
-          </Button>
-        </div>
-
-        {/* Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total de Orçamentos</CardTitle>
-              <FileText className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{loading ? '...' : stats.totalOrcamentos}</div>
-              <CardDescription>Orçamentos criados</CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-              <Clock className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{loading ? '...' : stats.pendentes}</div>
-              <CardDescription>Aguardando resposta</CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Aprovados</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{loading ? '...' : stats.aprovados}</div>
-              <CardDescription>Orçamentos aprovados</CardDescription>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Clientes</CardTitle>
-              <Users className="h-4 w-4 text-violet-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{loading ? '...' : stats.totalClientes}</div>
-              <CardDescription>Clientes cadastrados</CardDescription>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs e Conteúdo */}
-        <Tabs defaultValue="recentes" className="mb-8">
-          <TabsList className="mb-4">
-            <TabsTrigger value="recentes">Orçamentos Recentes</TabsTrigger>
-            <TabsTrigger value="acoes">Ações Rápidas</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="recentes">
-            <Card>
-              <CardHeader>
-                <CardTitle>Orçamentos Recentes</CardTitle>
-                <CardDescription>Seus últimos orçamentos criados</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="text-center py-4">Carregando...</div>
-                ) : recentOrcamentos.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-2">Nº</th>
-                          <th className="text-left py-3 px-2">Data</th>
-                          <th className="text-left py-3 px-2">Cliente</th>
-                          <th className="text-left py-3 px-2">Valor</th>
-                          <th className="text-left py-3 px-2">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentOrcamentos.map((orcamento) => (
-                          <tr key={orcamento.id} className="border-b hover:bg-gray-50">
-                            <td className="py-3 px-2">{orcamento.numero}</td>
-                            <td className="py-3 px-2">{formatDate(orcamento.created_at)}</td>
-                            <td className="py-3 px-2">Cliente {orcamento.cliente_id.substring(0, 8)}</td>
-                            <td className="py-3 px-2">
-                              {new Intl.NumberFormat('pt-BR', { 
-                                style: 'currency', 
-                                currency: 'BRL' 
-                              }).format(orcamento.valor_total || 0)}
-                            </td>
-                            <td className="py-3 px-2">
-                              <div className={`flex items-center gap-1 ${getStatusColor(orcamento.status)}`}>
-                                {getStatusIcon(orcamento.status)}
-                                <span className="capitalize">{orcamento.status}</span>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ) : (
-                  <div className="text-center py-4 text-gray-500">
-                    Nenhum orçamento encontrado
-                  </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-end">
-                <Link to="/orcamentos">
-                  <Button variant="outline">Ver Todos</Button>
-                </Link>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="acoes">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Clientes</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <Link to="/clientes/novo">
-                    <Button variant="outline" className="w-full justify-start">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Novo Cliente
-                    </Button>
-                  </Link>
-                  <Link to="/clientes">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Search className="mr-2 h-4 w-4" />
-                      Buscar Clientes
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+          {/* Content */}
+          <div className="p-6 space-y-8">
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <StatCard
+                title="Total de Orçamentos"
+                value={loading ? '...' : stats.totalOrcamentos}
+                description="Orçamentos criados"
+                icon={FileText}
+                colorScheme="blue"
+                trend={{ value: 5, isPositive: true }}
+              />
               
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Orçamentos</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <Link to="/orcamentos/novo">
-                    <Button variant="outline" className="w-full justify-start">
-                      <PlusCircle className="mr-2 h-4 w-4" />
-                      Novo Orçamento
-                    </Button>
-                  </Link>
-                  <Link to="/orcamentos">
-                    <Button variant="outline" className="w-full justify-start">
-                      <FileText className="mr-2 h-4 w-4" />
-                      Listar Orçamentos
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              <StatCard
+                title="Pendentes"
+                value={loading ? '...' : stats.pendentes}
+                description="Aguardando resposta"
+                icon={Clock}
+                colorScheme="orange"
+                trend={{ value: 2, isPositive: false }}
+              />
               
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Produtos</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3">
-                  <Link to="/produtos">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Package className="mr-2 h-4 w-4" />
-                      Catálogo de Produtos
-                    </Button>
-                  </Link>
-                  <Link to="/produtos/busca">
-                    <Button variant="outline" className="w-full justify-start">
-                      <Search className="mr-2 h-4 w-4" />
-                      Buscar Produtos
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              <StatCard
+                title="Aprovados"
+                value={loading ? '...' : stats.aprovados}
+                description="Orçamentos aprovados"
+                icon={CheckCircle}
+                colorScheme="green"
+                trend={{ value: 18, isPositive: true }}
+              />
+              
+              <StatCard
+                title="Clientes"
+                value={loading ? '...' : stats.totalClientes}
+                description="Clientes cadastrados"
+                icon={Users}
+                colorScheme="purple"
+                trend={{ value: 12, isPositive: true }}
+              />
             </div>
-          </TabsContent>
-        </Tabs>
-        
-        {/* Calendário e Relatórios */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Agenda</CardTitle>
-                <Calendar className="h-5 w-5 text-gray-500" />
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ChartPlaceholder
+                title="Orçamentos por Status"
+                description="Distribuição dos status dos orçamentos"
+                type="pie"
+              />
+              
+              <ChartPlaceholder
+                title="Evolução Mensal"
+                description="Crescimento de orçamentos ao longo do tempo"
+                type="line"
+              />
+            </div>
+
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Recent Quotes */}
+              <div className="lg:col-span-2">
+                <ModernCard variant="glass" className="h-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Orçamentos Recentes</h3>
+                    <Button asChild variant="outline" size="sm">
+                      <Link to="/orcamentos">
+                        Ver Todos
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                  
+                  {loading ? (
+                    <div className="text-center py-8">Carregando...</div>
+                  ) : recentOrcamentos.length > 0 ? (
+                    <div className="space-y-3">
+                      {recentOrcamentos.map((orcamento) => (
+                        <div 
+                          key={orcamento.id} 
+                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                              <FileText className="h-4 w-4 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">#{orcamento.numero}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {formatDate(orcamento.created_at)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="font-medium">
+                                {formatCurrency(orcamento.valor_total || 0)}
+                              </p>
+                            </div>
+                            <Badge variant={getStatusVariant(orcamento.status)} className="flex items-center gap-1">
+                              {getStatusIcon(orcamento.status)}
+                              {orcamento.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Nenhum orçamento encontrado
+                    </div>
+                  )}
+                </ModernCard>
               </div>
-              <CardDescription>Próximos compromissos</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Funcionalidade em desenvolvimento
+
+              {/* Quick Actions */}
+              <div className="space-y-6">
+                <ModernCard variant="gradient" className="hover-scale">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+                        <TrendingUp className="h-5 w-5 text-green-500" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold">Valor Total</h4>
+                        <p className="text-sm text-muted-foreground">Orçamentos aprovados</p>
+                      </div>
+                    </div>
+                    <p className="text-2xl font-bold">{formatCurrency(stats.valorTotal)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      +23% em relação ao mês anterior
+                    </p>
+                  </div>
+                </ModernCard>
+
+                <ModernCard variant="default">
+                  <div className="space-y-4">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      Agenda
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        Hoje • 14:00
+                      </div>
+                      <p className="text-sm">Reunião com cliente XYZ</p>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="text-sm text-muted-foreground">
+                        Amanhã • 10:00
+                      </div>
+                      <p className="text-sm">Apresentação de proposta</p>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Ver Agenda
+                    </Button>
+                  </div>
+                </ModernCard>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Relatórios</CardTitle>
-                <BarChart3 className="h-5 w-5 text-gray-500" />
-              </div>
-              <CardDescription>Resumo de desempenho</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                Funcionalidade em desenvolvimento
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-    </div>
+            </div>
+
+            {/* Bottom Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <ModernCard className="hover-scale">
+                <div className="text-center space-y-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mx-auto">
+                    <PlusCircle className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <h4 className="font-semibold">Novo Cliente</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Cadastre um novo cliente no sistema
+                  </p>
+                  <Button asChild className="w-full">
+                    <Link to="/clientes/novo">Cadastrar Cliente</Link>
+                  </Button>
+                </div>
+              </ModernCard>
+
+              <ModernCard className="hover-scale">
+                <div className="text-center space-y-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 mx-auto">
+                    <Package className="h-6 w-6 text-green-500" />
+                  </div>
+                  <h4 className="font-semibold">Catálogo</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Explore nosso catálogo de produtos
+                  </p>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/produtos">Ver Produtos</Link>
+                  </Button>
+                </div>
+              </ModernCard>
+
+              <ModernCard className="hover-scale">
+                <div className="text-center space-y-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/10 mx-auto">
+                    <BarChart3 className="h-6 w-6 text-purple-500" />
+                  </div>
+                  <h4 className="font-semibold">Relatórios</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Analise suas métricas de vendas
+                  </p>
+                  <Button asChild variant="outline" className="w-full">
+                    <Link to="/relatorios">Ver Relatórios</Link>
+                  </Button>
+                </div>
+              </ModernCard>
+            </div>
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 };
 
