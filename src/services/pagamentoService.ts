@@ -1,14 +1,23 @@
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/types/database.types';
+import { customSupabase, type CondicaoPagamento } from '@/integrations/supabase/custom-client';
 
-export type OpcaoPagamento = Tables<'opcoes_pagamento'>;
-export type CondicaoPagamento = Tables<'condicoes_pagamento'>;
+export interface OpcaoPagamento {
+  id: string;
+  descricao: string;
+  entrada_percentual: number | null;
+  num_parcelas: number | null;
+  dias_entre_parcelas: number | null;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export type { CondicaoPagamento };
 
 /**
  * Busca todas as opções de pagamento disponíveis
  */
 export const getOpcoesPagamento = async (): Promise<OpcaoPagamento[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('opcoes_pagamento')
     .select('*')
     .eq('ativo', true)
@@ -28,110 +37,127 @@ export const getOpcoesPagamento = async (): Promise<OpcaoPagamento[]> => {
 export const calcularCondicaoPagamento = (
   opcao: OpcaoPagamento,
   valorTotal: number,
-  taxaJuros?: number
+  valorEntrada?: number
 ): {
-  valorEntrada: number | null;
-  valorParcela: number | null;
-  numParcelas: number | null;
+  valorEntrada: number;
+  valorFinanciado: number;
+  valorParcela: number;
   valorTotalComJuros: number;
+  numParcelas: number;
   datasParcelas: Date[];
 } => {
-  let valorEntrada: number | null = null;
-  let valorParcela: number | null = null;
-  let valorTotalComJuros = valorTotal;
+  // Determinar entrada
+  let entrada = valorEntrada || 0;
+  if (opcao.entrada_percentual && opcao.entrada_percentual > 0) {
+    entrada = Math.max(entrada, valorTotal * (opcao.entrada_percentual / 100));
+  }
+
+  // Valor a ser financiado
+  const valorFinanciado = valorTotal - entrada;
+  const numParcelas = opcao.num_parcelas || 1;
+
+  // Por enquanto, sem juros - pode ser implementado depois
+  const valorParcela = valorFinanciado / numParcelas;
+  const valorTotalComJuros = entrada + (valorParcela * numParcelas);
+
+  // Gerar datas das parcelas
   const datasParcelas: Date[] = [];
+  const diasEntreParcelas = opcao.dias_entre_parcelas || 30;
   const hoje = new Date();
   
-  // Calcular valor de entrada se aplicável
-  if (opcao.entrada_percentual) {
-    valorEntrada = (opcao.entrada_percentual / 100) * valorTotal;
+  for (let i = 1; i <= numParcelas; i++) {
+    const dataParcela = new Date(hoje);
+    dataParcela.setDate(dataParcela.getDate() + (diasEntreParcelas * i));
+    datasParcelas.push(dataParcela);
   }
-  
-  // Aplicar juros se fornecido
-  if (taxaJuros && taxaJuros > 0) {
-    // Taxa de juros mensal
-    const taxaMensal = taxaJuros / 100;
-    
-    // Valor com juros (para pagamentos parcelados)
-    if (opcao.num_parcelas && opcao.num_parcelas > 1) {
-      // Fórmula de juros compostos para parcelas iguais
-      const valorFinanciado = valorEntrada ? valorTotal - valorEntrada : valorTotal;
-      
-      // Fator de juros para parcelas iguais
-      const fator = (Math.pow(1 + taxaMensal, opcao.num_parcelas) * taxaMensal) / 
-                    (Math.pow(1 + taxaMensal, opcao.num_parcelas) - 1);
-      
-      valorParcela = valorFinanciado * fator;
-      valorTotalComJuros = (valorParcela * opcao.num_parcelas) + (valorEntrada || 0);
-    } else if (opcao.dias_entre_parcelas && opcao.dias_entre_parcelas > 0) {
-      // Para pagamentos com datas específicas (30/60/90 etc.)
-      valorTotalComJuros = valorTotal * Math.pow(1 + taxaMensal, opcao.num_parcelas || 1);
-    }
-  } else {
-    // Sem juros
-    if (opcao.num_parcelas && opcao.num_parcelas > 0) {
-      const valorFinanciado = valorEntrada ? valorTotal - valorEntrada : valorTotal;
-      valorParcela = valorFinanciado / opcao.num_parcelas;
-    }
-  }
-  
-  // Calcular datas das parcelas
-  if (opcao.num_parcelas && opcao.dias_entre_parcelas) {
-    let dataAtual = new Date(hoje);
-    
-    // Se tem entrada, a primeira parcela é hoje
-    if (valorEntrada) {
-      datasParcelas.push(new Date(dataAtual));
-    }
-    
-    // Calcular datas das parcelas restantes
-    for (let i = 0; i < opcao.num_parcelas; i++) {
-      dataAtual = new Date(dataAtual);
-      dataAtual.setDate(dataAtual.getDate() + (i === 0 ? opcao.dias_entre_parcelas : opcao.dias_entre_parcelas));
-      datasParcelas.push(new Date(dataAtual));
-    }
-  }
-  
+
   return {
-    valorEntrada,
+    valorEntrada: entrada,
+    valorFinanciado,
     valorParcela,
-    numParcelas: opcao.num_parcelas,
     valorTotalComJuros,
+    numParcelas,
     datasParcelas
   };
 };
 
 /**
- * Cria uma nova condição de pagamento para um orçamento
+ * Gera um cronograma de pagamento
+ */
+export const gerarCronogramaPagamento = (
+  opcao: OpcaoPagamento,
+  valorTotal: number,
+  dataInicio: Date,
+  valorEntrada?: number
+): Array<{
+  parcela: number;
+  vencimento: Date;
+  valor: number;
+  tipo: 'entrada' | 'parcela';
+}> => {
+  const cronograma = [];
+  const calculo = calcularCondicaoPagamento(opcao, valorTotal, valorEntrada);
+  
+  // Adicionar entrada se houver
+  if (calculo.valorEntrada > 0) {
+    cronograma.push({
+      parcela: 0,
+      vencimento: new Date(dataInicio),
+      valor: calculo.valorEntrada,
+      tipo: 'entrada' as const
+    });
+  }
+
+  // Adicionar parcelas
+  const diasEntreParcelas = opcao.dias_entre_parcelas || 30;
+  for (let i = 1; i <= calculo.numParcelas; i++) {
+    const vencimento = new Date(dataInicio);
+    vencimento.setDate(vencimento.getDate() + (diasEntreParcelas * i));
+    
+    cronograma.push({
+      parcela: i,
+      vencimento,
+      valor: calculo.valorParcela,
+      tipo: 'parcela' as const
+    });
+  }
+
+  return cronograma;
+};
+
+/**
+ * Cria uma condição de pagamento para um orçamento
  */
 export const criarCondicaoPagamento = async (
   orcamentoId: string,
-  opcaoPagamento: OpcaoPagamento,
+  opcao: OpcaoPagamento,
   valorTotal: number,
   taxaJuros?: number,
-  metodo?: 'cartao' | 'boleto' | 'pix'
+  metodo?: string
 ): Promise<CondicaoPagamento> => {
-  const calculo = calcularCondicaoPagamento(opcaoPagamento, valorTotal, taxaJuros);
-  
-  const { data, error } = await supabase
+  // Calcular valores
+  const calculo = calcularCondicaoPagamento(opcao, valorTotal);
+
+  // Criar condição de pagamento
+  const { data, error } = await customSupabase
     .from('condicoes_pagamento')
     .insert({
       orcamento_id: orcamentoId,
-      descricao: opcaoPagamento.descricao,
-      valor_entrada: calculo.valorEntrada,
-      num_parcelas: calculo.numParcelas,
-      taxa_juros: taxaJuros,
-      valor_parcela: calculo.valorParcela,
+      descricao: opcao.descricao,
+      valor_entrada: calculo.valorEntrada > 0 ? calculo.valorEntrada : null,
+      num_parcelas: calculo.numParcelas > 1 ? calculo.numParcelas : null,
+      taxa_juros: null, // Implementar depois se necessário
+      valor_parcela: calculo.numParcelas > 1 ? calculo.valorParcela : null,
       valor_total: calculo.valorTotalComJuros,
-      metodo: metodo
+      metodo: metodo as any || null
     })
     .select()
     .single();
-  
+
   if (error) {
     console.error('Erro ao criar condição de pagamento:', error);
     throw new Error('Erro ao criar condição de pagamento');
   }
-  
+
   return data;
 };

@@ -1,17 +1,18 @@
-import { supabase } from '@/integrations/supabase/client';
-import { TABLES } from '@/utils/constants';
+import { customSupabase, type Orcamento, type ItemOrcamento, type CondicaoPagamento, type OrcamentoPDF } from '@/integrations/supabase/custom-client';
+import { type Cliente } from '@/services/clienteService';
+import { type Produto } from '@/services/produtoService';
 import { handleSupabaseError } from '@/utils/errorHandler';
-import type { Tables } from '@/types/database.types';
 
-export type Orcamento = Tables<'orcamentos'>;
+// Re-exportar tipos para evitar conflitos
+export type { Orcamento as OrcamentoQuery, ItemOrcamento, CondicaoPagamento, OrcamentoPDF };
 
 /**
  * Busca todos os orçamentos do usuário atual
  */
 export const getOrcamentos = async (): Promise<Orcamento[]> => {
   try {
-    const { data, error } = await supabase
-      .from(TABLES.ORCAMENTOS)
+    const { data, error } = await customSupabase
+      .from('orcamentos')
       .select('*')
       .order('created_at', { ascending: false });
 
@@ -27,14 +28,14 @@ export const getOrcamentos = async (): Promise<Orcamento[]> => {
  */
 export const getOrcamentoCompleto = async (id: string): Promise<{
   orcamento: Orcamento;
-  itens: (Tables<'itens_orcamento'> & { produto: Tables<'produtos'> })[];
-  condicoes: Tables<'condicoes_pagamento'>[];
-  cliente: Tables<'clientes'>;
+  itens: (ItemOrcamento & { produto: Produto })[];
+  condicoes: CondicaoPagamento[];
+  cliente: Cliente;
 }> => {
   try {
     // Buscar orçamento
-    const { data: orcamento, error: orcamentoError } = await supabase
-      .from(TABLES.ORCAMENTOS)
+    const { data: orcamento, error: orcamentoError } = await customSupabase
+      .from('orcamentos')
       .select('*')
       .eq('id', id)
       .single();
@@ -42,28 +43,43 @@ export const getOrcamentoCompleto = async (id: string): Promise<{
     if (orcamentoError) throw orcamentoError;
 
     // Buscar cliente
-    const { data: cliente, error: clienteError } = await supabase
-      .from(TABLES.CLIENTES)
+    const { data: cliente, error: clienteError } = await customSupabase
+      .from('clientes')
       .select('*')
       .eq('id', orcamento.cliente_id)
       .single();
 
     if (clienteError) throw clienteError;
 
-    // Buscar itens com produtos
-    const { data: itens, error: itensError } = await supabase
-      .from(TABLES.ITENS_ORCAMENTO)
-      .select(`
-        *,
-        produto:produto_id (*)
-      `)
-      .eq('orcamento_id', id);
+    // Buscar itens do orçamento
+    const { data: itensData, error: itensError } = await customSupabase
+      .from('itens_orcamento')
+      .select('*')
+      .eq('orcamento_id', id)
+      .order('created_at');
 
     if (itensError) throw itensError;
 
+    // Buscar produtos para cada item
+    const itens: (ItemOrcamento & { produto: Produto })[] = [];
+    for (const item of itensData || []) {
+      const { data: produto, error: produtoError } = await customSupabase
+        .from('produtos')
+        .select('*')
+        .eq('id', item.produto_id)
+        .single();
+
+      if (produtoError || !produto) {
+        console.error('Erro ao buscar produto do item:', produtoError);
+        continue;
+      }
+
+      itens.push({ ...item, produto });
+    }
+
     // Buscar condições de pagamento
-    const { data: condicoes, error: condicoesError } = await supabase
-      .from(TABLES.CONDICOES_PAGAMENTO)
+    const { data: condicoes, error: condicoesError } = await customSupabase
+      .from('condicoes_pagamento')
       .select('*')
       .eq('orcamento_id', id);
 
@@ -71,7 +87,7 @@ export const getOrcamentoCompleto = async (id: string): Promise<{
 
     return {
       orcamento,
-      itens: itens as any,
+      itens,
       condicoes: condicoes || [],
       cliente
     };
@@ -83,10 +99,10 @@ export const getOrcamentoCompleto = async (id: string): Promise<{
 /**
  * Busca os PDFs de um orçamento
  */
-export const getOrcamentoPDFs = async (orcamentoId: string): Promise<Tables<'orcamentos_pdf'>[]> => {
+export const getOrcamentoPDFs = async (orcamentoId: string): Promise<OrcamentoPDF[]> => {
   try {
-    const { data, error } = await supabase
-      .from(TABLES.ORCAMENTOS_PDF)
+    const { data, error } = await customSupabase
+      .from('orcamentos_pdf')
       .select('*')
       .eq('orcamento_id', orcamentoId)
       .order('versao', { ascending: false });

@@ -1,17 +1,26 @@
-import { supabase } from '@/integrations/supabase/client';
-import type { Tables } from '@/types/database.types';
+import { customSupabase, type Orcamento, type ItemOrcamento, type CondicaoPagamento, type OrcamentoPDF } from '@/integrations/supabase/custom-client';
+import { type Cliente } from '@/services/clienteService';
+import { type Produto } from '@/services/produtoService';
 
-export type Orcamento = Tables<'orcamentos'>;
-export type ItemOrcamento = Tables<'itens_orcamento'>;
-export type CondicaoPagamento = Tables<'condicoes_pagamento'>;
-export type OpcaoPagamento = Tables<'opcoes_pagamento'>;
-export type OrcamentoPDF = Tables<'orcamentos_pdf'>;
+export type { Orcamento, ItemOrcamento, CondicaoPagamento, OrcamentoPDF };
+
+// Tipo para as opções de pagamento
+export interface OpcaoPagamento {
+  id: string;
+  descricao: string;
+  entrada_percentual: number | null;
+  num_parcelas: number | null;
+  dias_entre_parcelas: number | null;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
 /**
  * Busca todos os orçamentos do usuário atual
  */
 export const getOrcamentos = async (): Promise<Orcamento[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('orcamentos')
     .select('*')
     .order('created_at', { ascending: false });
@@ -29,12 +38,12 @@ export const getOrcamentos = async (): Promise<Orcamento[]> => {
  */
 export const getOrcamentoCompleto = async (id: string): Promise<{
   orcamento: Orcamento;
-  itens: (ItemOrcamento & { produto: Tables<'produtos'> })[];
+  itens: (ItemOrcamento & { produto: Produto })[];
   condicoes: CondicaoPagamento[];
-  cliente: Tables<'clientes'>;
+  cliente: Cliente;
 }> => {
   // Buscar orçamento
-  const { data: orcamento, error: orcamentoError } = await supabase
+  const { data: orcamento, error: orcamentoError } = await customSupabase
     .from('orcamentos')
     .select('*')
     .eq('id', id)
@@ -46,7 +55,7 @@ export const getOrcamentoCompleto = async (id: string): Promise<{
   }
 
   // Buscar cliente
-  const { data: cliente, error: clienteError } = await supabase
+  const { data: cliente, error: clienteError } = await customSupabase
     .from('clientes')
     .select('*')
     .eq('id', orcamento.cliente_id)
@@ -57,22 +66,37 @@ export const getOrcamentoCompleto = async (id: string): Promise<{
     throw new Error('Erro ao buscar cliente do orçamento');
   }
 
-  // Buscar itens com produtos
-  const { data: itens, error: itensError } = await supabase
+  // Buscar itens do orçamento
+  const { data: itensData, error: itensError } = await customSupabase
     .from('itens_orcamento')
-    .select(`
-      *,
-      produto:produto_id (*)
-    `)
-    .eq('orcamento_id', id);
+    .select('*')
+    .eq('orcamento_id', id)
+    .order('created_at');
 
   if (itensError) {
     console.error('Erro ao buscar itens do orçamento:', itensError);
     throw new Error('Erro ao buscar itens do orçamento');
   }
 
+  // Buscar produtos para cada item
+  const itens: (ItemOrcamento & { produto: Produto })[] = [];
+  for (const item of itensData || []) {
+    const { data: produto, error: produtoError } = await customSupabase
+      .from('produtos')
+      .select('*')
+      .eq('id', item.produto_id)
+      .single();
+
+    if (produtoError || !produto) {
+      console.error('Erro ao buscar produto do item:', produtoError);
+      continue;
+    }
+
+    itens.push({ ...item, produto });
+  }
+
   // Buscar condições de pagamento
-  const { data: condicoes, error: condicoesError } = await supabase
+  const { data: condicoes, error: condicoesError } = await customSupabase
     .from('condicoes_pagamento')
     .select('*')
     .eq('orcamento_id', id);
@@ -84,7 +108,7 @@ export const getOrcamentoCompleto = async (id: string): Promise<{
 
   return {
     orcamento,
-    itens: itens as any,
+    itens,
     condicoes: condicoes || [],
     cliente
   };
@@ -98,7 +122,7 @@ export const createOrcamento = async (
   usuarioId: string,
   observacoes?: string
 ): Promise<Orcamento> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('orcamentos')
     .insert({
       cliente_id: clienteId,
@@ -128,7 +152,7 @@ export const addItemOrcamento = async (
 ): Promise<ItemOrcamento> => {
   const subtotal = quantidade * valorUnitario;
 
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('itens_orcamento')
     .insert({
       orcamento_id: orcamentoId,
@@ -158,7 +182,7 @@ export const updateItemOrcamento = async (
 ): Promise<ItemOrcamento> => {
   const subtotal = quantidade * valorUnitario;
 
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('itens_orcamento')
     .update({
       quantidade,
@@ -182,7 +206,7 @@ export const updateItemOrcamento = async (
  * Remove um item do orçamento
  */
 export const removeItemOrcamento = async (id: string): Promise<void> => {
-  const { error } = await supabase
+  const { error } = await customSupabase
     .from('itens_orcamento')
     .delete()
     .eq('id', id);
@@ -197,7 +221,7 @@ export const removeItemOrcamento = async (id: string): Promise<void> => {
  * Busca todas as opções de pagamento disponíveis
  */
 export const getOpcoesPagamento = async (): Promise<OpcaoPagamento[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('opcoes_pagamento')
     .select('*')
     .eq('ativo', true)
@@ -217,7 +241,7 @@ export const getOpcoesPagamento = async (): Promise<OpcaoPagamento[]> => {
 export const addCondicaoPagamento = async (
   condicao: Omit<CondicaoPagamento, 'id' | 'created_at' | 'updated_at'>
 ): Promise<CondicaoPagamento> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('condicoes_pagamento')
     .insert(condicao)
     .select()
@@ -235,7 +259,7 @@ export const addCondicaoPagamento = async (
  * Remove uma condição de pagamento
  */
 export const removeCondicaoPagamento = async (id: string): Promise<void> => {
-  const { error } = await supabase
+  const { error } = await customSupabase
     .from('condicoes_pagamento')
     .delete()
     .eq('id', id);
@@ -270,7 +294,7 @@ export const updateOrcamentoStatus = async (
     updates.data_aprovacao = new Date().toISOString();
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('orcamentos')
     .update(updates)
     .eq('id', id)
@@ -293,7 +317,7 @@ export const saveOrcamentoPDF = async (
   url: string
 ): Promise<OrcamentoPDF> => {
   // Verificar se já existe um PDF para este orçamento
-  const { data: existingPdfs } = await supabase
+  const { data: existingPdfs } = await customSupabase
     .from('orcamentos_pdf')
     .select('*')
     .eq('orcamento_id', orcamentoId)
@@ -301,7 +325,7 @@ export const saveOrcamentoPDF = async (
 
   const versao = existingPdfs && existingPdfs.length > 0 ? existingPdfs[0].versao + 1 : 1;
 
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('orcamentos_pdf')
     .insert({
       orcamento_id: orcamentoId,
@@ -323,7 +347,7 @@ export const saveOrcamentoPDF = async (
  * Busca os PDFs de um orçamento
  */
 export const getOrcamentoPDFs = async (orcamentoId: string): Promise<OrcamentoPDF[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await customSupabase
     .from('orcamentos_pdf')
     .select('*')
     .eq('orcamento_id', orcamentoId)
