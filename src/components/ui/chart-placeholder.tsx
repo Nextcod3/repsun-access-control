@@ -88,7 +88,7 @@ export function ChartPlaceholder({
   };
 
   return (
-    <ModernCard variant="glass" className="hover-scale">
+    <ModernCard variant="glass" className="hover-scale animate-slide-up">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">{title}</h3>

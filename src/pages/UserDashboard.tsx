@@ -162,43 +162,47 @@ const UserDashboard = () => {
           </header>
 
           {/* Content */}
-          <div className="p-6 space-y-8">
+          <div className="p-6 space-y-8 animate-slide-up">
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <StatCard
                 title="Total de Orçamentos"
-                value={loading ? '...' : stats.totalOrcamentos}
+                value={stats.totalOrcamentos}
                 description="Orçamentos criados"
                 icon={FileText}
                 colorScheme="blue"
                 trend={{ value: 5, isPositive: true }}
+                loading={loading}
               />
               
               <StatCard
                 title="Pendentes"
-                value={loading ? '...' : stats.pendentes}
+                value={stats.pendentes}
                 description="Aguardando resposta"
                 icon={Clock}
                 colorScheme="orange"
                 trend={{ value: 2, isPositive: false }}
+                loading={loading}
               />
               
               <StatCard
                 title="Aprovados"
-                value={loading ? '...' : stats.aprovados}
+                value={stats.aprovados}
                 description="Orçamentos aprovados"
                 icon={CheckCircle}
                 colorScheme="green"
                 trend={{ value: 18, isPositive: true }}
+                loading={loading}
               />
               
               <StatCard
                 title="Clientes"
-                value={loading ? '...' : stats.totalClientes}
+                value={stats.totalClientes}
                 description="Clientes cadastrados"
                 icon={Users}
                 colorScheme="purple"
                 trend={{ value: 12, isPositive: true }}
+                loading={loading}
               />
             </div>
 
@@ -233,7 +237,17 @@ const UserDashboard = () => {
                   </div>
                   
                   {loading ? (
-                    <div className="text-center py-8">Carregando...</div>
+                  <div className="space-y-3">
+                    {[0,1,2,3,4].map((i) => (
+                      <div key={i} className="p-3 rounded-lg bg-muted/30">
+                        <div className="flex items-center justify-between">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                        <Skeleton className="h-3 w-32 mt-2" />
+                      </div>
+                    ))}
+                  </div>
                   ) : recentOrcamentos.length > 0 ? (
                     <div className="space-y-3">
                       {recentOrcamentos.map((orcamento) => (
