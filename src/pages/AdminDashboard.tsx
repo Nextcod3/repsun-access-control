@@ -17,12 +17,14 @@ import {
   Loader2,
   ArrowRight,
   Plus,
-  Settings
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import { getUsuarios } from '@/services/usuarioService';
 import { getProdutos } from '@/services/produtoService';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/format';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -39,7 +41,7 @@ const AdminDashboard = () => {
     fetchData();
   }, []);
 
-  const fetchData = async () => {
+  const fetchData = async (showToast = false) => {
     try {
       setLoading(true);
       
@@ -56,6 +58,13 @@ const AdminDashboard = () => {
         orcamentosAprovados: 8,
         valorTotalOrcamentos: 15750.50
       });
+
+      if (showToast) {
+        toast({
+          title: "Atualizado",
+          description: "Dados do dashboard foram atualizados."
+        });
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       toast({
@@ -86,21 +95,70 @@ const AdminDashboard = () => {
                   Visão geral e controle do sistema RepSUN
                 </p>
               </div>
-              <Button asChild className="bg-gradient-to-r from-primary to-primary-glow hover:opacity-90">
-                <Link to="/admin/usuarios" className="flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Novo Usuário
-                </Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => fetchData(true)}
+                  disabled={loading}
+                  className="min-w-[120px]"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Atualizando
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Atualizar
+                    </>
+                  )}
+                </Button>
+                <Button asChild className="bg-gradient-to-r from-primary to-primary-glow hover:opacity-90">
+                  <Link to="/admin/usuarios" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Novo Usuário
+                  </Link>
+                </Button>
+              </div>
             </div>
           </header>
 
           {/* Content */}
-          <div className="p-6 space-y-8">
+          <div className="p-6 space-y-8 animate-enter">
             {loading ? (
-              <div className="flex justify-center items-center py-16">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[0,1,2,3].map((i) => (
+                    <ModernCard key={i} variant="gradient" className="animate-enter">
+                      <Skeleton className="h-4 w-24 mb-3" />
+                      <Skeleton className="h-8 w-32" />
+                      <Skeleton className="h-3 w-40 mt-2" />
+                    </ModernCard>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                  <ModernCard variant="glass">
+                    <Skeleton className="h-48 w-full" />
+                  </ModernCard>
+                  <ModernCard variant="glass">
+                    <Skeleton className="h-48 w-full" />
+                  </ModernCard>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
+                  {[0,1,2].map((i) => (
+                    <ModernCard key={i} variant="default">
+                      <Skeleton className="h-24 w-full" />
+                    </ModernCard>
+                  ))}
+                </div>
+
+                <ModernCard variant="glass" className="mt-6">
+                  <Skeleton className="h-72 w-full" />
+                </ModernCard>
+              </>
             ) : (
               <>
                 {/* Stats Grid */}

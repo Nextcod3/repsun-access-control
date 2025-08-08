@@ -19,12 +19,15 @@ import {
   Calendar,
   BarChart3,
   ArrowRight,
-  XCircle
+  XCircle,
+  RefreshCw,
+  Loader2
 } from 'lucide-react';
 import { getOrcamentos } from '@/services/orcamentoService';
 import { getClientes } from '@/services/clienteService';
 import { toast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/format';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const UserDashboard = () => {
   const { user } = useAuth();
@@ -40,48 +43,51 @@ const UserDashboard = () => {
   });
   const [recentOrcamentos, setRecentOrcamentos] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        const orcamentos = await getOrcamentos();
-        const clientes = await getClientes();
-        
-        const pendentes = orcamentos.filter(o => o.status === 'enviado').length;
-        const aprovados = orcamentos.filter(o => o.status === 'aprovado').length;
-        const rejeitados = orcamentos.filter(o => o.status === 'rejeitado').length;
-        const valorTotal = orcamentos
-          .filter(o => o.status === 'aprovado')
-          .reduce((sum, o) => sum + (o.valor_total || 0), 0);
-        
-        setStats({
-          totalOrcamentos: orcamentos.length,
-          pendentes,
-          aprovados,
-          rejeitados,
-          totalClientes: clientes.length,
-          valorTotal
-        });
-        
-        setRecentOrcamentos(
-          orcamentos
-            .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
-            .slice(0, 5)
-        );
-        
-      } catch (error) {
-        console.error('Erro ao carregar dados do dashboard:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os dados do dashboard",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
+  const fetchData = async (showToast = false) => {
+    try {
+      setLoading(true);
+      
+      const orcamentos = await getOrcamentos();
+      const clientes = await getClientes();
+      
+      const pendentes = orcamentos.filter(o => o.status === 'enviado').length;
+      const aprovados = orcamentos.filter(o => o.status === 'aprovado').length;
+      const rejeitados = orcamentos.filter(o => o.status === 'rejeitado').length;
+      const valorTotal = orcamentos
+        .filter(o => o.status === 'aprovado')
+        .reduce((sum, o) => sum + (o.valor_total || 0), 0);
+      
+      setStats({
+        totalOrcamentos: orcamentos.length,
+        pendentes,
+        aprovados,
+        rejeitados,
+        totalClientes: clientes.length,
+        valorTotal
+      });
+      
+      setRecentOrcamentos(
+        orcamentos
+          .sort((a, b) => new Date(b.created_at || '').getTime() - new Date(a.created_at || '').getTime())
+          .slice(0, 5)
+      );
+
+      if (showToast) {
+        toast({ title: 'Atualizado', description: 'Dados do dashboard foram atualizados.' });
       }
-    };
-    
+    } catch (error) {
+      console.error('Erro ao carregar dados do dashboard:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os dados do dashboard",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -126,12 +132,32 @@ const UserDashboard = () => {
                   Bem-vindo de volta, {user?.nome}
                 </p>
               </div>
-              <Button asChild className="bg-gradient-to-r from-green-500 to-cyan-500 hover:opacity-90">
-                <Link to="/orcamentos/novo" className="flex items-center gap-2">
-                  <PlusCircle className="h-4 w-4" />
-                  Novo Orçamento
-                </Link>
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => fetchData(true)}
+                  disabled={loading}
+                  className="min-w-[120px]"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Atualizando
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Atualizar
+                    </>
+                  )}
+                </Button>
+                <Button asChild className="bg-gradient-to-r from-green-500 to-cyan-500 hover:opacity-90">
+                  <Link to="/orcamentos/novo" className="flex items-center gap-2">
+                    <PlusCircle className="h-4 w-4" />
+                    Novo Orçamento
+                  </Link>
+                </Button>
+              </div>
             </div>
           </header>
 
