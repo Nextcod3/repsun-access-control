@@ -2,20 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ModernCard } from '@/components/ui/modern-card';
 import { Input } from '@/components/ui/input';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { UserSidebar } from '@/components/layout/UserSidebar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  LogOut, 
   Users, 
   PlusCircle,
   Search,
   Edit,
   Trash2,
-  ArrowLeft,
-  Loader2
+  Loader2,
+  Phone,
+  MapPin,
+  RefreshCw
 } from 'lucide-react';
 import { getClientes, deleteCliente, Cliente } from '@/services/clienteService';
-import { toast } from '@/components/ui/use-toast';
+import { toast } from '@/hooks/use-toast';
 import {
   Table,
   TableBody,
@@ -46,11 +50,17 @@ const ClientesPage = () => {
     fetchClientes();
   }, []);
 
-  const fetchClientes = async () => {
+  const fetchClientes = async (showToast = false) => {
     try {
       setLoading(true);
       const data = await getClientes();
       setClientes(data);
+      if (showToast) {
+        toast({
+          title: "Atualizado",
+          description: "Lista de clientes atualizada."
+        });
+      }
     } catch (error) {
       console.error('Erro ao buscar clientes:', error);
       toast({
@@ -137,154 +147,213 @@ const ClientesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/dashboard">
-                <h1 className="text-xl font-semibold text-gray-900">RepSUN</h1>
-              </Link>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Bem-vindo, {user?.nome}</span>
-              <Button variant="outline" onClick={logout} className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Sair
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center mb-6">
-          <Link to="/dashboard" className="mr-4">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Clientes</h2>
-            <p className="text-gray-600">Gerencie seus clientes</p>
-          </div>
-        </div>
-
-        <Card className="mb-6">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xl">Lista de Clientes</CardTitle>
-            <Link to="/clientes/novo">
-              <Button className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2">
-                <PlusCircle className="h-4 w-4" />
-                Novo Cliente
-              </Button>
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                <Input
-                  type="search"
-                  placeholder="Buscar por nome, documento ou telefone..."
-                  className="pl-8"
-                  value={searchTerm}
-                  onChange={handleSearch}
-                />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-background to-background/80">
+        <UserSidebar />
+        
+        <main className="flex-1 overflow-auto">
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
+            <div className="flex h-16 items-center gap-4 px-6">
+              <SidebarTrigger />
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Clientes
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  Gerencie todos os seus clientes
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => fetchClientes(true)}
+                  disabled={loading}
+                  className="min-w-[120px]"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Atualizando
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Atualizar
+                    </>
+                  )}
+                </Button>
+                <Button asChild className="bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90">
+                  <Link to="/clientes/novo" className="flex items-center gap-2">
+                    <PlusCircle className="h-4 w-4" />
+                    Novo Cliente
+                  </Link>
+                </Button>
               </div>
             </div>
+          </header>
 
-            {loading ? (
-              <div className="flex justify-center items-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              </div>
-            ) : filteredClientes.length > 0 ? (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Documento</TableHead>
-                      <TableHead>Telefone</TableHead>
-                      <TableHead>UF</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredClientes.map((cliente) => (
-                      <TableRow key={cliente.id}>
-                        <TableCell className="font-medium">{cliente.nome}</TableCell>
-                        <TableCell>{formatDocument(cliente.documento)}</TableCell>
-                        <TableCell>{formatPhone(cliente.telefone)}</TableCell>
-                        <TableCell>{cliente.uf || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Link to={`/clientes/editar/${cliente.id}`}>
-                              <Button variant="outline" size="icon">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                            </Link>
-                            <Button 
-                              variant="outline" 
-                              size="icon"
-                              onClick={() => confirmDelete(cliente)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+          {/* Content */}
+          <div className="p-6 space-y-6 animate-slide-up">
+            <ModernCard variant="glass">
+              <div className="space-y-6">
+                <div className="mb-6">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="search"
+                      placeholder="Buscar por nome, documento ou telefone..."
+                      className="pl-10 bg-background/50 border-border/50 focus:border-primary"
+                      value={searchTerm}
+                      onChange={handleSearch}
+                    />
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[0,1,2,3,4,5].map((i) => (
+                      <div key={i} className="animate-slide-up" style={{ animationDelay: `${i * 0.1}s` }}>
+                        <ModernCard variant="default">
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="h-12 w-12 rounded-full" />
+                              <div className="space-y-2">
+                                <Skeleton className="h-4 w-32" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <Skeleton className="h-3 w-full" />
+                              <Skeleton className="h-3 w-3/4" />
+                            </div>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </ModernCard>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
+                  </div>
+                ) : filteredClientes.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredClientes.map((cliente, index) => (
+                      <div 
+                        key={cliente.id}
+                        className="animate-slide-up"
+                        style={{ animationDelay: `${index * 0.1}s` }}
+                      >
+                        <ModernCard variant="default" className="hover-scale">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                                  <Users className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                  <h3 className="font-semibold">{cliente.nome}</h3>
+                                  <p className="text-sm text-muted-foreground">
+                                    {formatDocument(cliente.documento)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm">
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span>{formatPhone(cliente.telefone) || 'Não informado'}</span>
+                              </div>
+                              {cliente.uf && (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                                  <span>{cliente.uf}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex justify-end gap-2 pt-2 border-t border-border/50">
+                              <Button asChild variant="outline" size="sm">
+                                <Link to={`/clientes/editar/${cliente.id}`}>
+                                  <Edit className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => confirmDelete(cliente)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </ModernCard>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 animate-slide-up">
+                    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-muted/20 mx-auto mb-4">
+                      <Users className="h-10 w-10 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">
+                      {searchTerm ? 'Nenhum cliente encontrado' : 'Nenhum cliente cadastrado'}
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      {searchTerm ? 
+                        'Tente ajustar os termos de busca' :
+                        'Comece adicionando seu primeiro cliente'}
+                    </p>
+                    {!searchTerm && (
+                      <Button asChild>
+                        <Link to="/clientes/novo">
+                          <PlusCircle className="mr-2 h-4 w-4" />
+                          Adicionar Cliente
+                        </Link>
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                {searchTerm ? 'Nenhum cliente encontrado para esta busca' : 'Nenhum cliente cadastrado'}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </main>
+            </ModernCard>
+          </div>
+        </main>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir o cliente "{clienteToDelete?.nome}"?
-              Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={deleting}
-            >
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete}
-              disabled={deleting}
-            >
-              {deleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Excluindo...
-                </>
-              ) : (
-                'Excluir'
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar exclusão</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja excluir o cliente "{clienteToDelete?.nome}"?
+                Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                onClick={() => setDeleteDialogOpen(false)}
+                disabled={deleting}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  'Excluir'
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </SidebarProvider>
   );
 };
 
