@@ -7,13 +7,330 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
+      clientes: {
+        Row: {
+          created_at: string | null
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string
+          uf: string | null
+          updated_at: string | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone: string
+          uf?: string | null
+          updated_at?: string | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          documento?: string | null
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string
+          uf?: string | null
+          updated_at?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientes_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      condicoes_pagamento: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          id: string
+          metodo: Database["public"]["Enums"]["metodo_pagamento"] | null
+          num_parcelas: number | null
+          orcamento_id: string
+          taxa_juros: number | null
+          updated_at: string | null
+          valor_entrada: number | null
+          valor_parcela: number | null
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          id?: string
+          metodo?: Database["public"]["Enums"]["metodo_pagamento"] | null
+          num_parcelas?: number | null
+          orcamento_id: string
+          taxa_juros?: number | null
+          updated_at?: string | null
+          valor_entrada?: number | null
+          valor_parcela?: number | null
+          valor_total: number
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          id?: string
+          metodo?: Database["public"]["Enums"]["metodo_pagamento"] | null
+          num_parcelas?: number | null
+          orcamento_id?: string
+          taxa_juros?: number | null
+          updated_at?: string | null
+          valor_entrada?: number | null
+          valor_parcela?: number | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "condicoes_pagamento_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itens_orcamento: {
+        Row: {
+          created_at: string | null
+          id: string
+          orcamento_id: string
+          produto_id: string
+          quantidade: number
+          subtotal: number
+          updated_at: string | null
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          orcamento_id: string
+          produto_id: string
+          quantidade?: number
+          subtotal: number
+          updated_at?: string | null
+          valor_unitario: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          orcamento_id?: string
+          produto_id?: string
+          quantidade?: number
+          subtotal?: number
+          updated_at?: string | null
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_orcamento_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_orcamento_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      opcoes_pagamento: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          descricao: string
+          dias_entre_parcelas: number | null
+          entrada_percentual: number | null
+          id: string
+          num_parcelas: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao: string
+          dias_entre_parcelas?: number | null
+          entrada_percentual?: number | null
+          id?: string
+          num_parcelas?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          descricao?: string
+          dias_entre_parcelas?: number | null
+          entrada_percentual?: number | null
+          id?: string
+          num_parcelas?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      orcamentos: {
+        Row: {
+          cliente_id: string
+          created_at: string | null
+          data_aprovacao: string | null
+          data_criacao: string | null
+          data_envio: string | null
+          id: string
+          numero: number
+          observacoes: string | null
+          status: Database["public"]["Enums"]["orcamento_status"] | null
+          updated_at: string | null
+          usuario_id: string
+          valor_total: number | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string | null
+          data_aprovacao?: string | null
+          data_criacao?: string | null
+          data_envio?: string | null
+          id?: string
+          numero?: number
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["orcamento_status"] | null
+          updated_at?: string | null
+          usuario_id: string
+          valor_total?: number | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string | null
+          data_aprovacao?: string | null
+          data_criacao?: string | null
+          data_envio?: string | null
+          id?: string
+          numero?: number
+          observacoes?: string | null
+          status?: Database["public"]["Enums"]["orcamento_status"] | null
+          updated_at?: string | null
+          usuario_id?: string
+          valor_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orcamentos_pdf: {
+        Row: {
+          created_at: string | null
+          id: string
+          orcamento_id: string
+          url: string
+          versao: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          orcamento_id: string
+          url: string
+          versao?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          orcamento_id?: string
+          url?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orcamentos_pdf_orcamento_id_fkey"
+            columns: ["orcamento_id"]
+            isOneToOne: false
+            referencedRelation: "orcamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          created_at: string | null
+          descricao: string | null
+          id: string
+          imagem_url: string | null
+          nome: string
+          preco_outros: number | null
+          preco_sp: number | null
+          preco_sul_sudeste: number | null
+          updated_at: string | null
+          usuario_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          nome: string
+          preco_outros?: number | null
+          preco_sp?: number | null
+          preco_sul_sudeste?: number | null
+          updated_at?: string | null
+          usuario_id: string
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string | null
+          id?: string
+          imagem_url?: string | null
+          nome?: string
+          preco_outros?: number | null
+          preco_sp?: number | null
+          preco_sul_sudeste?: number | null
+          updated_at?: string | null
+          usuario_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produtos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string | null
@@ -52,9 +369,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_produto_preco: {
+        Args: { produto_id: string; uf: string }
+        Returns: number
+      }
     }
     Enums: {
+      metodo_pagamento: "cartao" | "boleto" | "pix"
+      orcamento_status:
+        | "rascunho"
+        | "enviado"
+        | "aprovado"
+        | "rejeitado"
+        | "cancelado"
       user_profile: "admin" | "usuario"
     }
     CompositeTypes: {
@@ -183,6 +510,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      metodo_pagamento: ["cartao", "boleto", "pix"],
+      orcamento_status: [
+        "rascunho",
+        "enviado",
+        "aprovado",
+        "rejeitado",
+        "cancelado",
+      ],
       user_profile: ["admin", "usuario"],
     },
   },
