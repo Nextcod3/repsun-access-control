@@ -88,7 +88,7 @@ const AdminDashboard = () => {
             <div className="flex h-16 items-center gap-4 px-6">
               <SidebarTrigger />
               <div className="flex-1">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
                   Dashboard Administrativo
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -114,7 +114,7 @@ const AdminDashboard = () => {
                     </>
                   )}
                 </Button>
-                <Button asChild className="bg-gradient-to-r from-primary to-primary-glow hover:opacity-90">
+                <Button asChild className="bg-gradient-primary hover:opacity-95">
                   <Link to="/admin/usuarios" className="flex items-center gap-2">
                     <Plus className="h-4 w-4" />
                     Novo Usuário
@@ -228,8 +228,8 @@ const AdminDashboard = () => {
                       {stats.usuariosPendentes > 0 ? (
                         <div className="space-y-4">
                           <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10">
-                              <Clock className="h-5 w-5 text-amber-500" />
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning/10">
+                              <Clock className="h-5 w-5 text-warning" />
                             </div>
                             <div>
                               <p className="font-medium">{stats.usuariosPendentes} usuário(s)</p>
@@ -245,7 +245,7 @@ const AdminDashboard = () => {
                         </div>
                       ) : (
                         <div className="text-center py-6">
-                          <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-2" />
+                          <CheckCircle className="mx-auto h-12 w-12 text-success mb-2" />
                           <p className="text-muted-foreground">Nenhum usuário pendente</p>
                         </div>
                       )}
@@ -257,7 +257,7 @@ const AdminDashboard = () => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Gestão de Produtos</h3>
-                        <Package className="h-5 w-5 text-green-500" />
+                        <Package className="h-5 w-5 text-success" />
                       </div>
                       
                       <div className="space-y-3">
@@ -267,7 +267,7 @@ const AdminDashboard = () => {
                         </div>
                         <div className="flex items-center justify-between text-sm">
                           <span>Ativos</span>
-                          <span className="font-medium text-green-600">{stats.totalProdutos}</span>
+                          <span className="font-medium text-success">{stats.totalProdutos}</span>
                         </div>
                       </div>
                       
@@ -285,20 +285,20 @@ const AdminDashboard = () => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold">Sistema</h3>
-                        <Settings className="h-5 w-5 text-blue-500" />
+                        <Settings className="h-5 w-5 text-primary" />
                       </div>
                       
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                          <div className="h-2 w-2 rounded-full bg-success"></div>
                           <span className="text-sm">Sistema online</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                          <div className="h-2 w-2 rounded-full bg-success"></div>
                           <span className="text-sm">Backup atualizado</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-yellow-500"></div>
+                          <div className="h-2 w-2 rounded-full bg-warning"></div>
                           <span className="text-sm">2 atualizações pendentes</span>
                         </div>
                       </div>

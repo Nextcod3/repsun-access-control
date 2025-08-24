@@ -125,7 +125,7 @@ const UserDashboard = () => {
             <div className="flex h-16 items-center gap-4 px-6">
               <SidebarTrigger />
               <div className="flex-1">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-green-600 to-cyan-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary bg-clip-text text-transparent">
                   Dashboard
                 </h1>
                 <p className="text-sm text-muted-foreground">
@@ -151,7 +151,7 @@ const UserDashboard = () => {
                     </>
                   )}
                 </Button>
-                <Button asChild className="bg-gradient-to-r from-green-500 to-cyan-500 hover:opacity-90">
+                <Button asChild className="bg-gradient-primary hover:opacity-95">
                   <Link to="/orcamentos/novo" className="flex items-center gap-2">
                     <PlusCircle className="h-4 w-4" />
                     Novo Orçamento
@@ -294,9 +294,9 @@ const UserDashboard = () => {
                 <ModernCard variant="gradient" className="hover-scale">
                   <div className="space-y-4">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-                        <TrendingUp className="h-5 w-5 text-green-500" />
-                      </div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
+                      <TrendingUp className="h-5 w-5 text-success" />
+                    </div>
                       <div>
                         <h4 className="font-semibold">Valor Total</h4>
                         <p className="text-sm text-muted-foreground">Orçamentos aprovados</p>
@@ -339,8 +339,8 @@ const UserDashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <ModernCard className="hover-scale">
                 <div className="text-center space-y-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-500/10 mx-auto">
-                    <PlusCircle className="h-6 w-6 text-blue-500" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mx-auto">
+                    <PlusCircle className="h-6 w-6 text-primary" />
                   </div>
                   <h4 className="font-semibold">Novo Cliente</h4>
                   <p className="text-sm text-muted-foreground">
@@ -354,8 +354,8 @@ const UserDashboard = () => {
 
               <ModernCard className="hover-scale">
                 <div className="text-center space-y-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 mx-auto">
-                    <Package className="h-6 w-6 text-green-500" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-success/10 mx-auto">
+                    <Package className="h-6 w-6 text-success" />
                   </div>
                   <h4 className="font-semibold">Catálogo</h4>
                   <p className="text-sm text-muted-foreground">
@@ -369,8 +369,8 @@ const UserDashboard = () => {
 
               <ModernCard className="hover-scale">
                 <div className="text-center space-y-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-500/10 mx-auto">
-                    <BarChart3 className="h-6 w-6 text-purple-500" />
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/50 mx-auto">
+                    <BarChart3 className="h-6 w-6 text-accent-foreground" />
                   </div>
                   <h4 className="font-semibold">Relatórios</h4>
                   <p className="text-sm text-muted-foreground">

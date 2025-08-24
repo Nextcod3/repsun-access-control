@@ -31,33 +31,33 @@ export function StatCard({
     switch (colorScheme) {
       case 'green':
         return {
-          icon: 'text-green-600',
-          bg: 'bg-green-500/10',
-          trend: trend?.isPositive ? 'text-green-600' : 'text-red-500'
+          icon: 'text-success',
+          bg: 'bg-success/10',
+          trend: trend?.isPositive ? 'text-success' : 'text-destructive'
         };
       case 'purple':
         return {
-          icon: 'text-purple-600',
-          bg: 'bg-purple-500/10',
-          trend: trend?.isPositive ? 'text-green-600' : 'text-red-500'
+          icon: 'text-accent-foreground',
+          bg: 'bg-accent/50',
+          trend: trend?.isPositive ? 'text-success' : 'text-destructive'
         };
       case 'orange':
         return {
-          icon: 'text-orange-600',
-          bg: 'bg-orange-500/10',
-          trend: trend?.isPositive ? 'text-green-600' : 'text-red-500'
+          icon: 'text-warning',
+          bg: 'bg-warning/10',
+          trend: trend?.isPositive ? 'text-success' : 'text-destructive'
         };
       case 'red':
         return {
-          icon: 'text-red-600',
-          bg: 'bg-red-500/10',
-          trend: trend?.isPositive ? 'text-green-600' : 'text-red-500'
+          icon: 'text-destructive',
+          bg: 'bg-destructive/10',
+          trend: trend?.isPositive ? 'text-success' : 'text-destructive'
         };
       default: // blue
         return {
-          icon: 'text-blue-600',
-          bg: 'bg-blue-500/10',
-          trend: trend?.isPositive ? 'text-green-600' : 'text-red-500'
+          icon: 'text-primary',
+          bg: 'bg-primary/10',
+          trend: trend?.isPositive ? 'text-success' : 'text-destructive'
         };
     }
   };
