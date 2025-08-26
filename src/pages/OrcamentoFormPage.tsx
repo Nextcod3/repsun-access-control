@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { UserSidebar } from '@/components/layout/UserSidebar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from '@/components/ui/modern-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  LogOut, 
   ArrowLeft,
   Save,
   Loader2,
   Search,
   Plus,
   Trash2,
-  ChevronRight,
+  User,
   Package,
-  User
+  Calculator,
+  ShoppingCart,
+  X
 } from 'lucide-react';
 import { 
   createOrcamento, 
@@ -24,25 +29,9 @@ import {
   removeItemOrcamento,
   getOrcamentoCompleto
 } from '@/services/orcamentoService';
-import { getClientes, searchClientes, Cliente } from '@/services/clienteService';
-import { searchProdutos, getProdutoPreco, Produto } from '@/services/produtoService';
-import { toast } from '@/components/ui/use-toast';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { searchClientes, type Cliente } from '@/services/clienteService';
+import { searchProdutos, getProdutoPreco, type Produto } from '@/services/produtoService';
+import { toast } from '@/hooks/use-toast';
 import {
   Command,
   CommandEmpty,
@@ -56,26 +45,36 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { formatCurrency } from '@/utils/format';
+
+interface ItemOrcamento {
+  id: string;
+  produto_id: string;
+  quantidade: number;
+  valor_unitario: number;
+  subtotal: number;
+  produto: Produto;
+}
 
 const OrcamentoFormPage = () => {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEditMode = !!id;
   
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [step, setStep] = useState(1); // 1: Cliente, 2: Produtos, 3: Condições
   
   // Orçamento data
-  const [orcamento, setOrcamento] = useState<any>({
-    cliente_id: '',
-    usuario_id: user?.id || '',
-    observacoes: '',
-    status: 'rascunho'
-  });
+  const [observacoes, setObservacoes] = useState('');
   
   // Cliente selection
   const [clienteSearchOpen, setClienteSearchOpen] = useState(false);
@@ -84,40 +83,43 @@ const OrcamentoFormPage = () => {
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
   const [clienteSearchLoading, setClienteSearchLoading] = useState(false);
   
-  // Produtos
+  // Produto selection
   const [produtoSearchOpen, setProdutoSearchOpen] = useState(false);
   const [produtoSearchTerm, setProdutoSearchTerm] = useState('');
   const [produtoSearchResults, setProdutoSearchResults] = useState<Produto[]>([]);
   const [produtoSearchLoading, setProdutoSearchLoading] = useState(false);
+  
+  // Add product dialog
+  const [addProductDialogOpen, setAddProductDialogOpen] = useState(false);
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
   const [quantidade, setQuantidade] = useState(1);
+  const [precoUnitario, setPrecoUnitario] = useState(0);
   
   // Itens do orçamento
-  const [itens, setItens] = useState<any[]>([]);
+  const [itens, setItens] = useState<ItemOrcamento[]>([]);
   const [valorTotal, setValorTotal] = useState(0);
 
+  // Load data if editing
   useEffect(() => {
     if (isEditMode && id) {
       fetchOrcamento(id);
     }
-  }, [id]);
+  }, [id, isEditMode]);
+
+  // Calculate total whenever items change
+  useEffect(() => {
+    const total = itens.reduce((sum, item) => sum + item.subtotal, 0);
+    setValorTotal(total);
+  }, [itens]);
 
   const fetchOrcamento = async (orcamentoId: string) => {
     try {
       setLoading(true);
       const data = await getOrcamentoCompleto(orcamentoId);
       
-      setOrcamento({
-        ...data.orcamento,
-        usuario_id: user?.id || ''
-      });
-      
+      setObservacoes(data.orcamento.observacoes || '');
       setSelectedCliente(data.cliente);
       setItens(data.itens);
-      
-      // Calculate total
-      const total = data.itens.reduce((sum: number, item: any) => sum + item.subtotal, 0);
-      setValorTotal(total);
       
     } catch (error) {
       console.error('Erro ao buscar orçamento:', error);
@@ -131,7 +133,7 @@ const OrcamentoFormPage = () => {
     }
   };
 
-  // Cliente search
+  // Cliente search functions
   const handleClienteSearch = async (term: string) => {
     setClienteSearchTerm(term);
     
@@ -153,14 +155,16 @@ const OrcamentoFormPage = () => {
 
   const handleClienteSelect = (cliente: Cliente) => {
     setSelectedCliente(cliente);
-    setOrcamento({
-      ...orcamento,
-      cliente_id: cliente.id
-    });
     setClienteSearchOpen(false);
+    setClienteSearchTerm('');
+    
+    toast({
+      title: "Cliente selecionado",
+      description: `${cliente.nome} foi selecionado para o orçamento`,
+    });
   };
 
-  // Produto search
+  // Produto search functions
   const handleProdutoSearch = async (term: string) => {
     setProdutoSearchTerm(term);
     
@@ -180,49 +184,56 @@ const OrcamentoFormPage = () => {
     }
   };
 
-  const handleProdutoSelect = (produto: Produto) => {
+  const handleProdutoSelect = async (produto: Produto) => {
     setSelectedProduto(produto);
     setProdutoSearchOpen(false);
+    
+    // Get price based on client's region
+    if (selectedCliente) {
+      try {
+        const preco = await getProdutoPreco(produto.id, selectedCliente.uf || 'SP');
+        setPrecoUnitario(preco);
+      } catch (error) {
+        // Fallback to default price
+        setPrecoUnitario(produto.preco_sp || 0);
+      }
+    } else {
+      setPrecoUnitario(produto.preco_sp || 0);
+    }
+    
+    setQuantidade(1);
+    setAddProductDialogOpen(true);
   };
 
-  // Add item to orçamento
+  // Add item functions
   const handleAddItem = async () => {
     if (!selectedProduto || !selectedCliente) return;
     
     try {
-      // Get price based on client's region
-      const preco = await getProdutoPreco(selectedProduto.id, selectedCliente.uf || 'SP');
+      const subtotal = quantidade * precoUnitario;
       
-      const subtotal = quantidade * preco;
-      
-      // If in edit mode, add to database
-      if (isEditMode && id) {
-        await addItemOrcamento(id, selectedProduto.id, quantidade, preco);
-      }
-      
-      // Add to local state
-      const newItem = {
-        id: Date.now().toString(), // Temporary ID for new items
+      // Create new item
+      const newItem: ItemOrcamento = {
+        id: `temp-${Date.now()}`, // Temporary ID for new items
         produto_id: selectedProduto.id,
         quantidade,
-        valor_unitario: preco,
+        valor_unitario: precoUnitario,
         subtotal,
         produto: selectedProduto
       };
       
       setItens([...itens, newItem]);
       
-      // Update total
-      setValorTotal(valorTotal + subtotal);
-      
       // Reset selection
       setSelectedProduto(null);
       setQuantidade(1);
+      setPrecoUnitario(0);
       setProdutoSearchTerm('');
+      setAddProductDialogOpen(false);
       
       toast({
         title: "Produto adicionado",
-        description: `${selectedProduto.nome} adicionado ao orçamento`
+        description: `${selectedProduto.nome} foi adicionado ao orçamento`,
       });
     } catch (error) {
       console.error('Erro ao adicionar item:', error);
@@ -234,48 +245,16 @@ const OrcamentoFormPage = () => {
     }
   };
 
-  // Remove item from orçamento
-  const handleRemoveItem = async (item: any) => {
-    try {
-      // If in edit mode, remove from database
-      if (isEditMode && id) {
-        await removeItemOrcamento(item.id);
-      }
-      
-      // Remove from local state
-      setItens(itens.filter(i => i.id !== item.id));
-      
-      // Update total
-      setValorTotal(valorTotal - item.subtotal);
-      
+  // Remove item functions
+  const handleRemoveItem = (itemId: string) => {
+    const item = itens.find(i => i.id === itemId);
+    setItens(itens.filter(i => i.id !== itemId));
+    
+    if (item) {
       toast({
         title: "Produto removido",
-        description: "Produto removido do orçamento"
+        description: `${item.produto.nome} foi removido do orçamento`,
       });
-    } catch (error) {
-      console.error('Erro ao remover item:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível remover o produto do orçamento",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Handle text inputs
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setOrcamento({
-      ...orcamento,
-      [name]: value
-    });
-  };
-
-  // Handle quantity change
-  const handleQuantidadeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    if (value > 0) {
-      setQuantidade(value);
     }
   };
 
@@ -290,6 +269,15 @@ const OrcamentoFormPage = () => {
       return;
     }
     
+    if (itens.length === 0) {
+      toast({
+        title: "Erro",
+        description: "Adicione pelo menos um produto ao orçamento",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     try {
       setSubmitting(true);
       
@@ -298,7 +286,7 @@ const OrcamentoFormPage = () => {
         const newOrcamento = await createOrcamento(
           selectedCliente.id,
           user?.id || '',
-          orcamento.observacoes
+          observacoes
         );
         
         // Add items
@@ -313,21 +301,17 @@ const OrcamentoFormPage = () => {
         
         toast({
           title: "Sucesso",
-          description: "Orçamento criado com sucesso"
+          description: "Orçamento criado com sucesso!"
         });
         
-        // Navigate to next step or orçamentos list
-        navigate('/orcamentos');
+        navigate(`/orcamentos/${newOrcamento.id}`);
       } else {
-        // Update existing orçamento
-        // This would be implemented if needed
-        
         toast({
           title: "Sucesso",
-          description: "Orçamento atualizado com sucesso"
+          description: "Orçamento atualizado com sucesso!"
         });
         
-        navigate('/orcamentos');
+        navigate(`/orcamentos/${id}`);
       }
     } catch (error) {
       console.error('Erro ao salvar orçamento:', error);
@@ -341,24 +325,14 @@ const OrcamentoFormPage = () => {
     }
   };
 
-  // Format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { 
-      style: 'currency', 
-      currency: 'BRL' 
-    }).format(value);
-  };
-
   // Format document (CPF/CNPJ)
   const formatDocument = (doc: string | null) => {
     if (!doc) return '-';
     
-    // CNPJ: 00.000.000/0000-00
     if (doc.length === 14) {
       return doc.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5");
     }
     
-    // CPF: 000.000.000-00
     if (doc.length === 11) {
       return doc.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, "$1.$2.$3-$4");
     }
@@ -368,389 +342,449 @@ const OrcamentoFormPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p>Carregando dados do orçamento...</p>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <UserSidebar />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="text-center animate-fade-in">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Carregando dados do orçamento...</p>
+            </div>
+          </main>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/dashboard">
-                <h1 className="text-xl font-semibold text-gray-900">RepSUN</h1>
-              </Link>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Bem-vindo, {user?.nome}</span>
-              <Button variant="outline" onClick={logout} className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Sair
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-background via-background to-background/80">
+        <UserSidebar />
+        
+        <main className="flex-1 overflow-auto">
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40">
+            <div className="flex h-16 items-center gap-4 px-6">
+              <SidebarTrigger />
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                  {isEditMode ? 'Editar Orçamento' : 'Novo Orçamento'}
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                  {isEditMode ? 'Atualize os dados do orçamento' : 'Monte seu orçamento selecionando cliente e produtos'}
+                </p>
+              </div>
+              <Button variant="outline" asChild>
+                <Link to="/orcamentos">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar
+                </Link>
               </Button>
             </div>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center mb-6">
-          <Link to="/orcamentos" className="mr-4">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {isEditMode ? 'Editar Orçamento' : 'Novo Orçamento'}
-            </h2>
-            <p className="text-gray-600">
-              {isEditMode ? 'Atualize os dados do orçamento' : 'Crie um novo orçamento'}
-            </p>
-          </div>
-        </div>
-
-        {/* Steps */}
-        <div className="mb-6">
-          <div className="flex items-center">
-            <div className={`flex items-center ${step >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 ${step >= 1 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}>
-                <User className="h-4 w-4" />
-              </div>
-              <span className="ml-2 font-medium">Cliente</span>
-            </div>
-            
-            <ChevronRight className="mx-2 h-4 w-4 text-gray-400" />
-            
-            <div className={`flex items-center ${step >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-              <div className={`rounded-full h-8 w-8 flex items-center justify-center border-2 ${step >= 2 ? 'border-blue-600 bg-blue-50' : 'border-gray-300'}`}>
-                <Package className="h-4 w-4" />
-              </div>
-              <span className="ml-2 font-medium">Produtos</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Step 1: Cliente */}
-        {step === 1 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Selecione o Cliente</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
-                    <Label>Cliente</Label>
-                    <div className="flex mt-1">
-                      <Popover open={clienteSearchOpen} onOpenChange={setClienteSearchOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={clienteSearchOpen}
-                            className="w-full justify-between"
-                          >
-                            {selectedCliente ? selectedCliente.nome : "Selecione um cliente..."}
-                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0">
-                          <Command>
-                            <CommandInput 
-                              placeholder="Buscar cliente..." 
-                              value={clienteSearchTerm}
-                              onValueChange={handleClienteSearch}
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                {clienteSearchLoading ? (
-                                  <div className="flex items-center justify-center p-4">
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                    Buscando...
-                                  </div>
-                                ) : (
-                                  "Nenhum cliente encontrado"
-                                )}
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {clienteSearchResults.map((cliente) => (
-                                  <CommandItem
-                                    key={cliente.id}
-                                    value={cliente.id}
-                                    onSelect={() => handleClienteSelect(cliente)}
-                                  >
-                                    <div className="flex flex-col">
-                                      <span>{cliente.nome}</span>
-                                      <span className="text-xs text-gray-500">
-                                        {formatDocument(cliente.documento)} • {cliente.telefone}
-                                      </span>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      
-                      <Link to="/clientes/novo" className="ml-2">
-                        <Button variant="outline" size="icon">
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </Link>
+          <div className="flex">
+            {/* Main Content */}
+            <div className="flex-1 p-6 space-y-6 animate-slide-up">
+              {/* Cliente Section */}
+              <ModernCard variant="glass" className="animate-fade-in">
+                <ModernCardHeader>
+                  <ModernCardTitle className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
+                      <User className="h-4 w-4 text-blue-600" />
                     </div>
-                  </div>
-                </div>
-
-                {selectedCliente && (
-                  <Card className="bg-gray-50">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">Dados do Cliente</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Nome</p>
-                          <p>{selectedCliente.nome}</p>
+                    Cliente
+                  </ModernCardTitle>
+                </ModernCardHeader>
+                <ModernCardContent>
+                  {selectedCliente ? (
+                    <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg border border-green-200/50 dark:border-green-800/30">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
+                          <User className="h-5 w-5 text-green-600" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-500">Documento</p>
-                          <p>{formatDocument(selectedCliente.documento)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Telefone</p>
-                          <p>{selectedCliente.telefone}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-500">Email</p>
-                          <p>{selectedCliente.email || '-'}</p>
-                        </div>
-                        <div className="md:col-span-2">
-                          <p className="text-sm font-medium text-gray-500">Endereço</p>
-                          <p>{selectedCliente.endereco || '-'}</p>
+                          <p className="font-semibold text-green-800 dark:text-green-200">{selectedCliente.nome}</p>
+                          <p className="text-sm text-green-600 dark:text-green-400">
+                            {formatDocument(selectedCliente.documento)} • {selectedCliente.telefone}
+                          </p>
+                          <p className="text-xs text-green-500 dark:text-green-500">
+                            {selectedCliente.endereco} - {selectedCliente.uf}
+                          </p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Link to="/orcamentos">
-                <Button variant="outline">Cancelar</Button>
-              </Link>
-              <Button 
-                onClick={() => setStep(2)} 
-                disabled={!selectedCliente}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                Próximo
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-
-        {/* Step 2: Produtos */}
-        {step === 2 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Adicione os Produtos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1">
-                    <Label>Produto</Label>
-                    <div className="flex mt-1">
-                      <Popover open={produtoSearchOpen} onOpenChange={setProdutoSearchOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={produtoSearchOpen}
-                            className="w-full justify-between"
-                          >
-                            {selectedProduto ? selectedProduto.nome : "Selecione um produto..."}
-                            <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[400px] p-0">
-                          <Command>
-                            <CommandInput 
-                              placeholder="Buscar produto..." 
-                              value={produtoSearchTerm}
-                              onValueChange={handleProdutoSearch}
-                            />
-                            <CommandList>
-                              <CommandEmpty>
-                                {produtoSearchLoading ? (
-                                  <div className="flex items-center justify-center p-4">
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                    Buscando...
-                                  </div>
-                                ) : (
-                                  "Nenhum produto encontrado"
-                                )}
-                              </CommandEmpty>
-                              <CommandGroup>
-                                {produtoSearchResults.map((produto) => (
-                                  <CommandItem
-                                    key={produto.id}
-                                    value={produto.id}
-                                    onSelect={() => handleProdutoSelect(produto)}
-                                  >
-                                    <div className="flex flex-col">
-                                      <span>{produto.nome}</span>
-                                      <span className="text-xs text-gray-500">
-                                        {produto.descricao?.substring(0, 50)}
-                                        {produto.descricao && produto.descricao.length > 50 ? '...' : ''}
-                                      </span>
-                                    </div>
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                  
-                  <div className="w-full md:w-32">
-                    <Label htmlFor="quantidade">Quantidade</Label>
-                    <Input
-                      id="quantidade"
-                      type="number"
-                      min="1"
-                      value={quantidade}
-                      onChange={handleQuantidadeChange}
-                      className="mt-1"
-                    />
-                  </div>
-                  
-                  <div className="flex items-end">
-                    <Button 
-                      onClick={handleAddItem} 
-                      disabled={!selectedProduto}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Adicionar
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Itens do Orçamento</h3>
-                  
-                  {itens.length > 0 ? (
-                    <div className="rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Produto</TableHead>
-                            <TableHead className="text-right">Quantidade</TableHead>
-                            <TableHead className="text-right">Valor Unitário</TableHead>
-                            <TableHead className="text-right">Subtotal</TableHead>
-                            <TableHead className="w-[50px]"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {itens.map((item) => (
-                            <TableRow key={item.id}>
-                              <TableCell>
-                                <div>
-                                  <p className="font-medium">{item.produto.nome}</p>
-                                  <p className="text-sm text-gray-500">
-                                    {item.produto.descricao?.substring(0, 50)}
-                                    {item.produto.descricao && item.produto.descricao.length > 50 ? '...' : ''}
-                                  </p>
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">{item.quantidade}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(item.valor_unitario)}</TableCell>
-                              <TableCell className="text-right">{formatCurrency(item.subtotal)}</TableCell>
-                              <TableCell>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon"
-                                  onClick={() => handleRemoveItem(item)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
-                          <TableRow>
-                            <TableCell colSpan={3} className="text-right font-medium">
-                              Total:
-                            </TableCell>
-                            <TableCell className="text-right font-bold">
-                              {formatCurrency(valorTotal)}
-                            </TableCell>
-                            <TableCell></TableCell>
-                          </TableRow>
-                        </TableBody>
-                      </Table>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSelectedCliente(null)}
+                        className="hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   ) : (
-                    <div className="text-center py-8 border rounded-md bg-gray-50">
-                      <p className="text-gray-500">Nenhum item adicionado ao orçamento</p>
+                    <Popover open={clienteSearchOpen} onOpenChange={setClienteSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-between h-12 bg-background/50 hover:bg-background/80 border-dashed"
+                        >
+                          <div className="flex items-center gap-2">
+                            <Search className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-muted-foreground">Selecione um cliente...</span>
+                          </div>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-96 p-0" align="start">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Buscar cliente por nome..." 
+                            value={clienteSearchTerm}
+                            onValueChange={handleClienteSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {clienteSearchLoading ? (
+                                <div className="flex items-center justify-center p-4">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  Buscando clientes...
+                                </div>
+                              ) : (
+                                <div className="text-center p-4">
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    Nenhum cliente encontrado
+                                  </p>
+                                  <Button asChild size="sm" variant="outline">
+                                    <Link to="/clientes/novo" target="_blank">
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Cadastrar Cliente
+                                    </Link>
+                                  </Button>
+                                </div>
+                              )}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {clienteSearchResults.map((cliente) => (
+                                <CommandItem
+                                  key={cliente.id}
+                                  value={cliente.id}
+                                  onSelect={() => handleClienteSelect(cliente)}
+                                  className="cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                                      <User className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-medium">{cliente.nome}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatDocument(cliente.documento)} • {cliente.telefone}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  )}
+                </ModernCardContent>
+              </ModernCard>
+
+              {/* Produtos Section */}
+              <ModernCard variant="glass" className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+                <ModernCardHeader>
+                  <div className="flex items-center justify-between">
+                    <ModernCardTitle className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-500/10">
+                        <Package className="h-4 w-4 text-purple-600" />
+                      </div>
+                      Produtos
+                    </ModernCardTitle>
+                    <Popover open={produtoSearchOpen} onOpenChange={setProdutoSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <Button 
+                          disabled={!selectedCliente}
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:opacity-90"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Adicionar Produto
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-96 p-0" align="end">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Buscar produto por nome..." 
+                            value={produtoSearchTerm}
+                            onValueChange={handleProdutoSearch}
+                          />
+                          <CommandList>
+                            <CommandEmpty>
+                              {produtoSearchLoading ? (
+                                <div className="flex items-center justify-center p-4">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  Buscando produtos...
+                                </div>
+                              ) : (
+                                "Nenhum produto encontrado"
+                              )}
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {produtoSearchResults.map((produto) => (
+                                <CommandItem
+                                  key={produto.id}
+                                  value={produto.id}
+                                  onSelect={() => handleProdutoSelect(produto)}
+                                  className="cursor-pointer"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10">
+                                      <Package className="h-4 w-4 text-purple-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-medium">{produto.nome}</p>
+                                      <p className="text-xs text-muted-foreground line-clamp-1">
+                                        {produto.descricao || 'Sem descrição'}
+                                      </p>
+                                    </div>
+                                    <Badge variant="secondary">
+                                      {formatCurrency(produto.preco_sp || 0)}
+                                    </Badge>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </ModernCardHeader>
+                <ModernCardContent>
+                  {itens.length > 0 ? (
+                    <div className="space-y-3">
+                      {itens.map((item, index) => (
+                        <div 
+                          key={item.id}
+                          className="animate-scale-in flex items-center justify-between p-4 bg-background/50 rounded-lg border border-border/50 hover:bg-background/80 transition-all duration-200"
+                          style={{ animationDelay: `${index * 0.1}s` }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10">
+                              <Package className="h-5 w-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{item.produto.nome}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {item.quantidade}x {formatCurrency(item.valor_unitario)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <p className="font-semibold">
+                                {formatCurrency(item.subtotal)}
+                              </p>
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="hover:bg-red-50 hover:border-red-200 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted/20 mx-auto mb-4">
+                        <ShoppingCart className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <p className="text-muted-foreground">
+                        {selectedCliente 
+                          ? 'Nenhum produto adicionado ainda'
+                          : 'Selecione um cliente primeiro para adicionar produtos'
+                        }
+                      </p>
                     </div>
                   )}
-                </div>
+                </ModernCardContent>
+              </ModernCard>
 
-                <div>
-                  <Label htmlFor="observacoes">Observações</Label>
+              {/* Observações Section */}
+              <ModernCard variant="glass" className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <ModernCardHeader>
+                  <ModernCardTitle>Observações</ModernCardTitle>
+                </ModernCardHeader>
+                <ModernCardContent>
                   <Textarea
-                    id="observacoes"
-                    name="observacoes"
-                    value={orcamento.observacoes || ''}
-                    onChange={handleChange}
+                    value={observacoes}
+                    onChange={(e) => setObservacoes(e.target.value)}
+                    placeholder="Adicione observações sobre o orçamento..."
                     rows={3}
-                    className="mt-1"
-                    placeholder="Informações adicionais sobre o orçamento..."
+                    className="bg-background/50"
+                  />
+                </ModernCardContent>
+              </ModernCard>
+            </div>
+
+            {/* Sticky Summary Panel */}
+            <div className="w-80 p-6 space-y-6">
+              <div className="sticky top-24">
+                <ModernCard variant="gradient" className="animate-slide-in-right">
+                  <ModernCardHeader>
+                    <ModernCardTitle className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+                        <Calculator className="h-4 w-4 text-white" />
+                      </div>
+                      Resumo do Orçamento
+                    </ModernCardTitle>
+                  </ModernCardHeader>
+                  <ModernCardContent className="space-y-6">
+                    {/* Client Info */}
+                    {selectedCliente && (
+                      <div className="space-y-2">
+                        <Label className="text-white/80">Cliente</Label>
+                        <div className="p-3 bg-white/10 rounded-lg backdrop-blur">
+                          <p className="font-medium text-white">{selectedCliente.nome}</p>
+                          <p className="text-xs text-white/70">
+                            {selectedCliente.uf} • {selectedCliente.telefone}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Items Summary */}
+                    <div className="space-y-2">
+                      <Label className="text-white/80">Itens</Label>
+                      <div className="p-3 bg-white/10 rounded-lg backdrop-blur">
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/80">Produtos:</span>
+                          <span className="font-medium text-white">{itens.length}</span>
+                        </div>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-white/80">Quantidade total:</span>
+                          <span className="font-medium text-white">
+                            {itens.reduce((sum, item) => sum + item.quantidade, 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Total */}
+                    <div className="space-y-3 pt-4 border-t border-white/20">
+                      <div className="flex justify-between items-center">
+                        <Label className="text-white/80">Valor Total</Label>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-white">
+                            {formatCurrency(valorTotal)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={handleSaveOrcamento}
+                        disabled={submitting || !selectedCliente || itens.length === 0}
+                        className="w-full bg-white text-primary hover:bg-white/90"
+                        size="lg"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Salvando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="mr-2 h-4 w-4" />
+                            {isEditMode ? 'Atualizar Orçamento' : 'Salvar Orçamento'}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </ModernCardContent>
+                </ModernCard>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Add Product Dialog */}
+      <Dialog open={addProductDialogOpen} onOpenChange={setAddProductDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Produto</DialogTitle>
+            <DialogDescription>
+              Configure a quantidade e preço do produto
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedProduto && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10">
+                  <Package className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-medium">{selectedProduto.nome}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedProduto.descricao || 'Sem descrição'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Quantidade</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={quantidade}
+                    onChange={(e) => setQuantidade(parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Preço Unitário</Label>
+                  <Input
+                    type="text"
+                    value={formatCurrency(precoUnitario)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^\d,]/g, '').replace(',', '.');
+                      setPrecoUnitario(parseFloat(value) || 0);
+                    }}
                   />
                 </div>
               </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button 
-                variant="outline"
-                onClick={() => setStep(1)}
-              >
-                Voltar
-              </Button>
-              <Button 
-                onClick={handleSaveOrcamento} 
-                disabled={itens.length === 0 || submitting}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Salvar Orçamento
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-      </main>
-    </div>
+
+              <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 rounded-lg border border-green-200/50 dark:border-green-800/30">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Subtotal:</span>
+                  <span className="text-lg font-bold text-green-700 dark:text-green-300">
+                    {formatCurrency(quantidade * precoUnitario)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddProductDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddItem}>
+              <Plus className="mr-2 h-4 w-4" />
+              Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </SidebarProvider>
   );
 };
 

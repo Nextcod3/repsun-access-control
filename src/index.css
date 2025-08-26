@@ -126,6 +126,15 @@
     --sidebar-border: 215 27.9% 16.9%;
     --sidebar-ring: 221 83% 53%;
   }
+  
+  /* Animation utilities */
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
 }
 
 @layer base {
