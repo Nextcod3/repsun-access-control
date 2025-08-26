@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from '@/components/ProtectedRoute';
 
 // Páginas públicas
+import Index from '@/pages/Index';
 import Auth from '@/pages/Auth';
 import NotFound from '@/pages/NotFound';
 
@@ -14,6 +15,7 @@ import UsuariosPage from '@/pages/admin/UsuariosPage';
 
 // Páginas de usuário
 import UserDashboard from '@/pages/UserDashboard';
+import ProdutosViewPage from '@/pages/ProdutosViewPage';
 
 // Páginas de cliente
 import ClientesPage from '@/pages/ClientesPage';
@@ -32,7 +34,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Rotas públicas */}
-      <Route path="/" element={<Navigate to="/auth" replace />} />
+      <Route path="/" element={<Index />} />
       <Route path="/auth" element={<Auth />} />
       
       {/* Rotas de administrador */}
@@ -87,6 +89,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute requiredRole="usuario">
             <UserDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/produtos" 
+        element={
+          <ProtectedRoute requiredRole="usuario">
+            <ProdutosViewPage />
           </ProtectedRoute>
         } 
       />
