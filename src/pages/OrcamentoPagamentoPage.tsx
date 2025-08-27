@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
+import { UserSidebar } from '@/components/layout/UserSidebar';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from '@/components/ui/modern-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { 
   LogOut, 
   ArrowLeft,
@@ -12,7 +15,11 @@ import {
   Loader2,
   Plus,
   Trash2,
-  Calculator
+  Calculator,
+  Calendar,
+  CreditCard,
+  FileText,
+  Receipt
 } from 'lucide-react';
 import { 
   getOrcamentoCompleto, 
@@ -22,7 +29,8 @@ import {
 import { 
   getOpcoesPagamento,
   calcularCondicaoPagamento,
-  criarCondicaoPagamento
+  criarCondicaoPagamento,
+  gerarCronogramaPagamento
 } from '@/services/pagamentoService';
 import { toast } from '@/components/ui/use-toast';
 import {
@@ -36,14 +44,6 @@ import {
   RadioGroup,
   RadioGroupItem
 } from "@/components/ui/radio-group";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -166,13 +166,16 @@ const OrcamentoPagamentoPage = () => {
     const calculo = calcularCondicaoPagamento(
       opcao,
       orcamento.valor_total,
-      taxaJuros > 0 ? taxaJuros : undefined
+      valorEntrada > 0 ? valorEntrada : undefined
     );
     
-    // Override entrada if manually set
-    if (valorEntrada > 0) {
-      calculo.valorEntrada = valorEntrada;
-    }
+    // Generate payment schedule
+    const cronograma = gerarCronogramaPagamento(
+      opcao,
+      orcamento.valor_total,
+      new Date(),
+      valorEntrada > 0 ? valorEntrada : undefined
+    );
     
     setPreviewCondicao({
       descricao: opcao.descricao,
@@ -182,7 +185,7 @@ const OrcamentoPagamentoPage = () => {
       valor_parcela: calculo.valorParcela,
       valor_total: calculo.valorTotalComJuros,
       metodo,
-      datasParcelas: calculo.datasParcelas
+      cronograma
     });
   };
 
@@ -286,363 +289,348 @@ const OrcamentoPagamentoPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mx-auto mb-4" />
-          <p>Carregando dados do orçamento...</p>
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full bg-gradient-to-br from-background to-muted/20">
+          <UserSidebar />
+          <main className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Carregando dados do orçamento...</p>
+            </div>
+          </main>
         </div>
-      </div>
+      </SidebarProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <Link to="/dashboard">
-                <h1 className="text-xl font-semibold text-gray-900">RepSUN</h1>
-              </Link>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">Bem-vindo, {user?.nome}</span>
-              <Button variant="outline" onClick={logout} className="flex items-center gap-2">
-                <LogOut className="h-4 w-4" />
-                Sair
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center mb-6">
-          <Link to={`/orcamentos/${id}`} className="mr-4">
-            <Button variant="outline" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              Condições de Pagamento
-            </h2>
-            <p className="text-gray-600">
-              Orçamento #{orcamento?.numero} - {cliente?.nome}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-          <div className="md:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Adicionar Condição de Pagamento</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="opcao">Forma de Pagamento</Label>
-                    <Select 
-                      value={selectedOpcao} 
-                      onValueChange={handleOpcaoChange}
-                    >
-                      <SelectTrigger id="opcao">
-                        <SelectValue placeholder="Selecione uma forma de pagamento" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {opcoesPagamento.map((opcao) => (
-                          <SelectItem key={opcao.id} value={opcao.id}>
-                            {opcao.descricao}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="valorEntrada">Valor de Entrada</Label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                          R$
-                        </span>
-                        <Input
-                          id="valorEntrada"
-                          type="number"
-                          min="0"
-                          step="0.01"
-                          value={valorEntrada || ''}
-                          onChange={handleValorEntradaChange}
-                          className="pl-8"
-                          disabled={!selectedOpcao}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="taxaJuros">Taxa de Juros (%)</Label>
-                      <div className="relative">
-                        <Input
-                          id="taxaJuros"
-                          type="number"
-                          min="0"
-                          step="0.1"
-                          value={taxaJuros || ''}
-                          onChange={handleTaxaJurosChange}
-                          disabled={!selectedOpcao}
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                          %
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label>Método de Pagamento</Label>
-                    <RadioGroup 
-                      value={metodo} 
-                      onValueChange={(value) => setMetodo(value as any)}
-                      className="flex space-x-4 mt-2"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="cartao" id="cartao" />
-                        <Label htmlFor="cartao">Cartão de Crédito</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="boleto" id="boleto" />
-                        <Label htmlFor="boleto">Boleto</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="pix" id="pix" />
-                        <Label htmlFor="pix">PIX</Label>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  <Button 
-                    onClick={handleAddCondicao}
-                    disabled={!previewCondicao || submitting}
-                    className="w-full"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Adicionando...
-                      </>
-                    ) : (
-                      <>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Adicionar Condição de Pagamento
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle>Resumo do Orçamento</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <dl className="space-y-2">
-                  <div className="flex justify-between">
-                    <dt className="font-medium text-gray-500">Número:</dt>
-                    <dd>{orcamento?.numero}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="font-medium text-gray-500">Cliente:</dt>
-                    <dd>{cliente?.nome}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="font-medium text-gray-500">Valor Total:</dt>
-                    <dd className="font-bold">{formatCurrency(orcamento?.valor_total)}</dd>
-                  </div>
-                  <div className="flex justify-between">
-                    <dt className="font-medium text-gray-500">Condições:</dt>
-                    <dd>{condicoes.length}</dd>
-                  </div>
-                </dl>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {previewCondicao && (
-          <Card className="mb-6 border-blue-200 bg-blue-50">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Prévia da Condição de Pagamento</CardTitle>
-                <Calculator className="h-5 w-5 text-blue-500" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-background to-muted/20">
+        <UserSidebar />
+        
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <header className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex h-14 items-center gap-4 px-6">
+              <SidebarTrigger />
+              <div className="flex items-center gap-2">
+                <Link 
+                  to="/orcamentos" 
+                  className="inline-flex items-center text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hover-scale"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar para Orçamentos
+                </Link>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Forma de Pagamento</p>
-                  <p className="font-medium">{previewCondicao.descricao}</p>
-                </div>
-                {previewCondicao.valor_entrada > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Entrada</p>
-                    <p className="font-medium">{formatCurrency(previewCondicao.valor_entrada)}</p>
-                  </div>
-                )}
-                {previewCondicao.num_parcelas > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Parcelas</p>
-                    <p className="font-medium">
-                      {previewCondicao.num_parcelas}x de {formatCurrency(previewCondicao.valor_parcela)}
-                    </p>
-                  </div>
-                )}
-                {previewCondicao.taxa_juros > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Taxa de Juros</p>
-                    <p className="font-medium">{previewCondicao.taxa_juros}%</p>
-                  </div>
-                )}
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Valor Total</p>
-                  <p className="font-bold">{formatCurrency(previewCondicao.valor_total)}</p>
+              <div className="ml-auto flex items-center gap-2">
+                <Badge variant="outline" className="hidden sm:flex">
+                  Orçamento #{orcamento?.numero}
+                </Badge>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <div className="flex-1 overflow-auto p-6">
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Calculator className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Método</p>
-                  <p className="font-medium capitalize">{previewCondicao.metodo}</p>
+                  <h1 className="text-3xl font-bold">
+                    Condições de Pagamento
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Configure as formas de pagamento para {cliente?.nome}
+                  </p>
                 </div>
               </div>
+            </div>
 
-              {previewCondicao.datasParcelas && previewCondicao.datasParcelas.length > 0 && (
-                <div className="mt-4">
-                  <p className="text-sm font-medium text-gray-500 mb-2">Datas de Pagamento</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {previewCondicao.datasParcelas.map((data: Date, index: number) => (
-                      <div key={index} className="border rounded p-2 text-center">
-                        <p className="text-xs text-gray-500">
-                          {index === 0 && previewCondicao.valor_entrada ? 'Entrada' : `Parcela ${index + (previewCondicao.valor_entrada ? 0 : 1)}`}
-                        </p>
-                        <p className="font-medium">{formatDate(data)}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                {/* Form Card */}
+                <ModernCard className="animate-fade-in">
+                  <ModernCardHeader>
+                    <div className="flex items-center gap-2">
+                      <CreditCard className="h-5 w-5 text-primary" />
+                      <ModernCardTitle>Adicionar Condição de Pagamento</ModernCardTitle>
+                    </div>
+                  </ModernCardHeader>
+                  <ModernCardContent>
+                    <div className="space-y-6">
+                      <div>
+                        <Label className="text-sm font-medium">Opção de Pagamento</Label>
+                        <Select 
+                          value={selectedOpcao} 
+                          onValueChange={handleOpcaoChange}
+                        >
+                          <SelectTrigger className="w-full mt-2 h-11">
+                            <SelectValue placeholder="Selecione uma opção" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {opcoesPagamento.map((opcao) => (
+                              <SelectItem key={opcao.id} value={opcao.id}>
+                                {opcao.descricao}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Condições de Pagamento</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {condicoes.length > 0 ? (
-              <div className="space-y-4">
-                {condicoes.map((condicao) => (
-                  <Card key={condicao.id} className="bg-gray-50">
-                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                      <CardTitle className="text-lg">{condicao.descricao}</CardTitle>
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => confirmDelete(condicao)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {condicao.valor_entrada && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">Entrada</p>
-                            <p className="font-medium">{formatCurrency(condicao.valor_entrada)}</p>
-                          </div>
-                        )}
-                        {condicao.num_parcelas && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">Parcelas</p>
-                            <p className="font-medium">{condicao.num_parcelas}x de {formatCurrency(condicao.valor_parcela)}</p>
-                          </div>
-                        )}
-                        {condicao.taxa_juros && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">Taxa de Juros</p>
-                            <p className="font-medium">{condicao.taxa_juros}%</p>
-                          </div>
-                        )}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <p className="text-sm font-medium text-gray-500">Valor Total</p>
-                          <p className="font-bold">{formatCurrency(condicao.valor_total)}</p>
+                          <Label className="text-sm font-medium">Taxa de Juros (%)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={taxaJuros}
+                            onChange={handleTaxaJurosChange}
+                            placeholder="0.00"
+                            className="mt-2 h-11"
+                          />
                         </div>
-                        {condicao.metodo && (
-                          <div>
-                            <p className="text-sm font-medium text-gray-500">Método de Pagamento</p>
-                            <p className="font-medium capitalize">{condicao.metodo}</p>
+                        <div>
+                          <Label className="text-sm font-medium">Valor de Entrada (R$)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={valorEntrada}
+                            onChange={handleValorEntradaChange}
+                            placeholder="0.00"
+                            className="mt-2 h-11"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium mb-3 block">Método de Pagamento</Label>
+                        <RadioGroup 
+                          value={metodo} 
+                          onValueChange={(value) => setMetodo(value as any)}
+                          className="grid grid-cols-3 gap-4"
+                        >
+                          <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <RadioGroupItem value="cartao" id="cartao" />
+                            <Label htmlFor="cartao" className="cursor-pointer">Cartão</Label>
+                          </div>
+                          <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <RadioGroupItem value="boleto" id="boleto" />
+                            <Label htmlFor="boleto" className="cursor-pointer">Boleto</Label>
+                          </div>
+                          <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <RadioGroupItem value="pix" id="pix" />
+                            <Label htmlFor="pix" className="cursor-pointer">PIX</Label>
+                          </div>
+                        </RadioGroup>
+                      </div>
+
+                      <Button 
+                        onClick={handleAddCondicao}
+                        disabled={!previewCondicao || submitting}
+                        className="w-full h-11 transition-all duration-200 hover-scale"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Adicionando...
+                          </>
+                        ) : (
+                          <>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Adicionar Condição de Pagamento
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </ModernCardContent>
+                </ModernCard>
+
+                {/* Preview Card */}
+                {previewCondicao && (
+                  <ModernCard className="animate-scale-in bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+                    <ModernCardHeader>
+                      <div className="flex items-center gap-2">
+                        <Calculator className="h-5 w-5 text-primary" />
+                        <ModernCardTitle>Prévia da Condição de Pagamento</ModernCardTitle>
+                      </div>
+                    </ModernCardHeader>
+                    <ModernCardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="p-3 bg-background/50 rounded-lg">
+                          <p className="text-sm font-medium text-muted-foreground">Forma de Pagamento</p>
+                          <p className="font-semibold">{previewCondicao.descricao}</p>
+                        </div>
+                        {previewCondicao.valor_entrada > 0 && (
+                          <div className="p-3 bg-background/50 rounded-lg">
+                            <p className="text-sm font-medium text-muted-foreground">Entrada</p>
+                            <p className="font-semibold text-green-600">{formatCurrency(previewCondicao.valor_entrada)}</p>
                           </div>
                         )}
+                        {previewCondicao.num_parcelas > 0 && (
+                          <div className="p-3 bg-background/50 rounded-lg">
+                            <p className="text-sm font-medium text-muted-foreground">Parcelas</p>
+                            <p className="font-semibold">
+                              {previewCondicao.num_parcelas}x de {formatCurrency(previewCondicao.valor_parcela)}
+                            </p>
+                          </div>
+                        )}
+                        <div className="p-3 bg-background/50 rounded-lg">
+                          <p className="text-sm font-medium text-muted-foreground">Total</p>
+                          <p className="font-semibold text-primary">{formatCurrency(previewCondicao.valor_total)}</p>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      
+                      {/* Payment Schedule Preview */}
+                      {previewCondicao.cronograma && previewCondicao.cronograma.length > 0 && (
+                        <div className="mt-4 p-4 bg-background/30 rounded-lg">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Calendar className="h-4 w-4 text-primary" />
+                            <p className="font-medium">Cronograma de Pagamento</p>
+                          </div>
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {previewCondicao.cronograma.map((item: any, index: number) => (
+                              <div key={index} className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground">
+                                  {item.tipo === 'entrada' ? 'Entrada' : `${item.parcela}ª Parcela`}
+                                </span>
+                                <span className="font-medium">{formatCurrency(item.valor)}</span>
+                                <span className="text-muted-foreground">{formatDate(item.vencimento)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </ModernCardContent>
+                  </ModernCard>
+                )}
+
+                {/* Existing Conditions */}
+                {condicoes.length > 0 && (
+                  <ModernCard className="animate-fade-in">
+                    <ModernCardHeader>
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-primary" />
+                        <ModernCardTitle>Condições de Pagamento Configuradas</ModernCardTitle>
+                      </div>
+                    </ModernCardHeader>
+                    <ModernCardContent>
+                      <div className="space-y-3">
+                        {condicoes.map((condicao, index) => (
+                          <div key={condicao.id} className="group p-4 border rounded-lg bg-muted/30 hover:bg-muted/50 transition-all duration-200 hover-scale">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Descrição</p>
+                                    <p className="font-semibold">{condicao.descricao}</p>
+                                  </div>
+                                  {condicao.valor_entrada && condicao.valor_entrada > 0 && (
+                                    <div>
+                                      <p className="text-sm font-medium text-muted-foreground">Entrada</p>
+                                      <p className="font-semibold text-green-600">{formatCurrency(condicao.valor_entrada)}</p>
+                                    </div>
+                                  )}
+                                  {condicao.num_parcelas && condicao.num_parcelas > 1 && (
+                                    <div>
+                                      <p className="text-sm font-medium text-muted-foreground">Parcelas</p>
+                                      <p className="font-semibold">
+                                        {condicao.num_parcelas}x de {formatCurrency(condicao.valor_parcela)}
+                                      </p>
+                                    </div>
+                                  )}
+                                  <div>
+                                    <p className="text-sm font-medium text-muted-foreground">Total</p>
+                                    <p className="font-semibold text-primary">{formatCurrency(condicao.valor_total)}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => confirmDelete(condicao)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ModernCardContent>
+                  </ModernCard>
+                )}
               </div>
-            ) : (
-              <div className="text-center py-8 border rounded-md bg-gray-50">
-                <p className="text-gray-500">Nenhuma condição de pagamento definida</p>
+
+              {/* Sidebar */}
+              <div className="space-y-6">
+                <ModernCard className="sticky top-20 animate-fade-in">
+                  <ModernCardHeader>
+                    <div className="flex items-center gap-2">
+                      <Receipt className="h-5 w-5 text-primary" />
+                      <ModernCardTitle>Resumo do Orçamento</ModernCardTitle>
+                    </div>
+                  </ModernCardHeader>
+                  <ModernCardContent>
+                    <dl className="space-y-3">
+                      <div className="flex justify-between items-center py-2 border-b">
+                        <dt className="font-medium text-muted-foreground">Número:</dt>
+                        <dd className="font-mono">#{orcamento?.numero}</dd>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b">
+                        <dt className="font-medium text-muted-foreground">Cliente:</dt>
+                        <dd className="text-right font-medium">{cliente?.nome}</dd>
+                      </div>
+                      <div className="flex justify-between items-center py-2 border-b">
+                        <dt className="font-medium text-muted-foreground">Valor Total:</dt>
+                        <dd className="text-right font-bold text-primary">{formatCurrency(orcamento?.valor_total)}</dd>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <dt className="font-medium text-muted-foreground">Condições:</dt>
+                        <dd>
+                          <Badge variant="secondary">{condicoes.length}</Badge>
+                        </dd>
+                      </div>
+                    </dl>
+                  </ModernCardContent>
+                </ModernCard>
               </div>
-            )}
-          </CardContent>
-          <CardFooter>
-            <Link to={`/orcamentos/${id}`} className="w-full">
-              <Button className="w-full">
-                Voltar para o Orçamento
-              </Button>
-            </Link>
-          </CardFooter>
-        </Card>
-      </main>
+            </div>
+          </div>
+        </main>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
+            <DialogTitle>Confirmar Exclusão</DialogTitle>
             <DialogDescription>
-              Tem certeza que deseja excluir esta condição de pagamento?
+              Tem certeza que deseja remover esta condição de pagamento?
               Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={submitting}
-            >
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               Cancelar
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDeleteCondicao}
-              disabled={submitting}
-            >
+            <Button variant="destructive" onClick={handleDeleteCondicao} disabled={submitting}>
               {submitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Excluindo...
+                  Removendo...
                 </>
               ) : (
-                'Excluir'
+                'Remover'
               )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </SidebarProvider>
   );
 };
 
