@@ -451,6 +451,13 @@ const OrcamentoDetailPage = () => {
                     Gerar PDF
                   </Button>
                   
+                  <Button asChild className="w-full bg-white/20 text-white hover:bg-white/30 border-white/20" variant="outline">
+                    <Link to={`/orcamentos/${id}/pdf`}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Preview PDF
+                    </Link>
+                  </Button>
+                  
                   <Button 
                     className="w-full bg-white/20 text-white hover:bg-white/30 border-white/20"
                     variant="outline"

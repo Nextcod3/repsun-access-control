@@ -26,6 +26,7 @@ import OrcamentosPage from '@/pages/OrcamentosPage';
 import OrcamentoFormPage from '@/pages/OrcamentoFormPage';
 import OrcamentoDetailPage from '@/pages/OrcamentoDetailPage';
 import OrcamentoPagamentoPage from '@/pages/OrcamentoPagamentoPage';
+import PDFViewPage from '@/pages/PDFViewPage';
 
 /**
  * Componente de rotas da aplicação
@@ -165,6 +166,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute requiredRole="usuario">
             <OrcamentoPagamentoPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/orcamentos/:id/pdf" 
+        element={
+          <ProtectedRoute requiredRole="usuario">
+            <PDFViewPage />
           </ProtectedRoute>
         } 
       />
