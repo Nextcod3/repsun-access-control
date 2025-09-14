@@ -1,4 +1,5 @@
 import { customSupabase, type Cliente } from '@/integrations/supabase/custom-client';
+import { notifyClienteAdicionado } from '@/services/notificationService';
 
 export type { Cliente };
 
@@ -71,6 +72,13 @@ export const createCliente = async (cliente: Omit<Cliente, 'id' | 'created_at' |
       throw new Error('Já existe um cliente com este documento');
     }
     throw new Error('Erro ao criar cliente');
+  }
+
+  // Criar notificação de cliente adicionado
+  try {
+    await notifyClienteAdicionado(data.usuario_id, data.id, data.nome);
+  } catch (notificationError) {
+    console.error('Erro ao criar notificação:', notificationError);
   }
 
   return data;

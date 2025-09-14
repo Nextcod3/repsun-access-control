@@ -32,6 +32,7 @@ import {
   getOrcamentoPDFs
 } from '@/services/orcamentoService';
 import { gerarPDFOrcamento, compartilharViaWhatsApp } from '@/services/pdfService';
+import { WhatsAppShare } from '@/components/ui/whatsapp-share';
 import { toast } from '@/hooks/use-toast';
 import {
   Dialog,
@@ -458,15 +459,20 @@ const OrcamentoDetailPage = () => {
                     </Link>
                   </Button>
                   
-                  <Button 
-                    className="w-full bg-white/20 text-white hover:bg-white/30 border-white/20"
-                    variant="outline"
-                    onClick={() => setShareDialogOpen(true)}
-                    disabled={pdfs.length === 0}
+                  <WhatsAppShare
+                    cliente={cliente}
+                    orcamento={orcamento}
+                    pdfUrl={pdfs.length > 0 ? pdfs[0].url : undefined}
                   >
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Compartilhar
-                  </Button>
+                    <Button 
+                      className="w-full bg-white/20 text-white hover:bg-white/30 border-white/20"
+                      variant="outline"
+                      disabled={pdfs.length === 0}
+                    >
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Compartilhar
+                    </Button>
+                  </WhatsAppShare>
                   
                   <Button asChild className="w-full bg-white text-primary hover:bg-white/90">
                     <Link to={`/orcamentos/editar/${id}`}>

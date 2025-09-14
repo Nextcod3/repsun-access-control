@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { useAuth } from "@/hooks/useAuth";
+import { NotificationCenter } from '@/components/ui/notification-center';
 import { 
   LayoutDashboard,
   Users,
@@ -171,17 +172,20 @@ export function UserSidebar({ className }: UserSidebarProps) {
             </div>
           )}
           
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={logout}
-              className="flex-1 justify-start gap-2 text-muted-foreground hover:text-destructive"
-            >
-              <LogOut className="h-4 w-4" />
-              {(!state || state === 'expanded') && <span>Sair</span>}
-            </Button>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={logout}
+                className="gap-2 text-muted-foreground hover:text-destructive"
+              >
+                <LogOut className="h-4 w-4" />
+                {(!state || state === 'expanded') && <span>Sair</span>}
+              </Button>
+            </div>
+            <NotificationCenter />
           </div>
         </div>
       </SidebarFooter>

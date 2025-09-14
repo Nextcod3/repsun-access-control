@@ -11,6 +11,9 @@ export interface Notification {
   created_at: string;
 }
 
+// Temporary typed client to avoid build errors until types are regenerated
+const typedSupabase = supabase as any;
+
 /**
  * Cria uma nova notificação
  */
@@ -21,7 +24,7 @@ export const createNotification = async (
   message: string,
   data?: Record<string, any>
 ): Promise<Notification> => {
-  const { data: notification, error } = await supabase
+  const { data: notification, error } = await typedSupabase
     .from('notifications')
     .insert({
       user_id: userId,
@@ -46,7 +49,7 @@ export const createNotification = async (
  * Busca todas as notificações do usuário
  */
 export const getNotifications = async (userId: string): Promise<Notification[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await typedSupabase
     .from('notifications')
     .select('*')
     .eq('user_id', userId)
@@ -64,7 +67,7 @@ export const getNotifications = async (userId: string): Promise<Notification[]> 
  * Marca uma notificação como lida
  */
 export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
-  const { error } = await supabase
+  const { error } = await typedSupabase
     .from('notifications')
     .update({ read: true })
     .eq('id', notificationId);
@@ -79,7 +82,7 @@ export const markNotificationAsRead = async (notificationId: string): Promise<vo
  * Marca todas as notificações como lidas
  */
 export const markAllNotificationsAsRead = async (userId: string): Promise<void> => {
-  const { error } = await supabase
+  const { error } = await typedSupabase
     .from('notifications')
     .update({ read: true })
     .eq('user_id', userId)
@@ -95,7 +98,7 @@ export const markAllNotificationsAsRead = async (userId: string): Promise<void> 
  * Conta notificações não lidas
  */
 export const getUnreadNotificationsCount = async (userId: string): Promise<number> => {
-  const { count, error } = await supabase
+  const { count, error } = await typedSupabase
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)

@@ -1,6 +1,7 @@
 import { customSupabase, type Orcamento, type ItemOrcamento, type CondicaoPagamento } from '@/integrations/supabase/custom-client';
 import { TABLES, ORCAMENTO_STATUS } from '@/utils/constants';
 import { handleSupabaseError } from '@/utils/errorHandler';
+import { notifyOrcamentoCriado, notifyOrcamentoStatusChange } from '@/services/notificationService';
 
 export type { Orcamento, ItemOrcamento, CondicaoPagamento };
 
@@ -27,6 +28,13 @@ export const createOrcamento = async (
     if (error) {
       console.error('Erro ao criar orçamento:', error);
       throw handleSupabaseError(error);
+    }
+
+    // Criar notificação de orçamento criado
+    try {
+      await notifyOrcamentoCriado(usuarioId, data.id, data.numero.toString());
+    } catch (notificationError) {
+      console.error('Erro ao criar notificação:', notificationError);
     }
 
     return data;
@@ -178,6 +186,18 @@ export const updateOrcamentoStatus = async (
     if (error) {
       console.error('Erro ao atualizar status do orçamento:', error);
       throw handleSupabaseError(error);
+    }
+
+    // Criar notificação de mudança de status
+    try {
+      await notifyOrcamentoStatusChange(
+        data.usuario_id,
+        orcamentoId,
+        data.numero.toString(),
+        status
+      );
+    } catch (notificationError) {
+      console.error('Erro ao criar notificação:', notificationError);
     }
 
     return data;

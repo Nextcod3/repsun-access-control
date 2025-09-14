@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, Check, CheckCheck, X, Mail, FileText, Users, System } from 'lucide-react';
+import { Bell, Check, CheckCheck, X, Mail, FileText, Users, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -99,7 +99,7 @@ export const NotificationCenter = () => {
       case 'client_added':
         return <Users className="h-4 w-4 text-green-600" />;
       case 'system':
-        return <System className="h-4 w-4 text-purple-600" />;
+        return <Settings className="h-4 w-4 text-purple-600" />;
       default:
         return <Bell className="h-4 w-4 text-gray-600" />;
     }
