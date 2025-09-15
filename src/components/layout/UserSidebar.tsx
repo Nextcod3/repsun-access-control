@@ -61,8 +61,8 @@ export function UserSidebar({ className }: UserSidebarProps) {
       icon: Package,
     },
     {
-      title: "Relatórios",
-      url: "/relatorios",
+      title: "Analytics",
+      url: "/analytics",
       icon: BarChart3,
     }
   ];

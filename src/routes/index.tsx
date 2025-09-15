@@ -16,6 +16,7 @@ import UsuariosPage from '@/pages/admin/UsuariosPage';
 // Páginas de usuário
 import UserDashboard from '@/pages/UserDashboard';
 import ProdutosViewPage from '@/pages/ProdutosViewPage';
+import AnalyticsPage from '@/pages/AnalyticsPage';
 
 // Páginas de cliente
 import ClientesPage from '@/pages/ClientesPage';
@@ -98,6 +99,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute requiredRole="usuario">
             <ProdutosViewPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/analytics" 
+        element={
+          <ProtectedRoute requiredRole="usuario">
+            <AnalyticsPage />
           </ProtectedRoute>
         } 
       />

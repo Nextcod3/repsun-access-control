@@ -377,7 +377,7 @@ const UserDashboard = () => {
                     Analise suas métricas de vendas
                   </p>
                   <Button asChild variant="outline" className="w-full">
-                    <Link to="/relatorios">Ver Relatórios</Link>
+                    <Link to="/analytics">Ver Analytics</Link>
                   </Button>
                 </div>
               </ModernCard>
