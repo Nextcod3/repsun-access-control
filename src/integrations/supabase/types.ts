@@ -405,6 +405,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_produto_preco: {
         Args: { produto_id: string; uf: string }
         Returns: number

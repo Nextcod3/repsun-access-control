@@ -44,24 +44,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Função para buscar dados do usuário a partir da sessão
   const fetchUserData = async (session: Session) => {
     try {
+      console.log('Fetching user data for session:', session.user.id, session.user.email);
+      
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
       
       if (userError) {
         console.error('Erro ao buscar dados do usuário:', userError);
-        // Usar dados básicos do auth
-        return {
-          id: session.user.id,
-          nome: session.user.user_metadata?.nome || session.user.email?.split('@')[0] || 'Usuário',
-          email: session.user.email || '',
-          perfil: session.user.user_metadata?.perfil || 'usuario',
-          status: true
-        };
+        return null;
       }
       
+      console.log('User data from database:', userData);
+      
+      // Se não encontrou o usuário na tabela users, mas ele existe no auth
+      if (!userData) {
+        console.log('Usuário não encontrado na tabela users, verificando se é admin...');
+        // Verificar se é o email do administrador
+        if (session.user.email === 'contato.braddockjunior@gmail.com') {
+          console.log('Detectado admin pelo email, criando objeto admin');
+          return {
+            id: session.user.id,
+            nome: 'Administrador',
+            email: session.user.email,
+            perfil: 'admin' as const,
+            status: true
+          };
+        }
+        return null;
+      }
+      
+      console.log('Returning user data:', userData);
       return userData as User;
     } catch (error) {
       console.error('Erro ao buscar dados do usuário:', error);

@@ -16,9 +16,13 @@ const Auth = () => {
 
   // Redirecionar se já estiver logado
   if (user) {
+    console.log('Usuário logado:', user);
+    console.log('Perfil do usuário:', user.perfil);
     if (user.perfil === 'admin') {
+      console.log('Redirecionando para /admin');
       return <Navigate to="/admin" replace />;
     } else {
+      console.log('Redirecionando para /dashboard');
       return <Navigate to="/dashboard" replace />;
     }
   }

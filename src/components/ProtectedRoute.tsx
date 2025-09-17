@@ -27,6 +27,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
   }
 
   if (requiredRole && user.perfil !== requiredRole) {
+    console.log(`User role: ${user.perfil}, Required role: ${requiredRole}`);
     // Redirecionar para a página apropriada baseada no perfil do usuário
     if (user.perfil === 'admin') {
       return <Navigate to="/admin" replace />;
