@@ -198,6 +198,15 @@ const ClienteFormPage = () => {
     if (!validateForm()) {
       return;
     }
+
+    if (!user?.id) {
+      toast({
+        title: "Erro",
+        description: "Usuário não autenticado",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       setSubmitting(true);
@@ -205,6 +214,7 @@ const ClienteFormPage = () => {
       // Format document to remove non-numeric characters and format CEP
       const formattedData = {
         ...formData,
+        usuario_id: user.id, // Ensure user ID is set
         documento: formData.documento ? formData.documento.replace(/\D/g, '') : '',
         cep: formData.cep ? formData.cep.replace(/\D/g, '').replace(/^(\d{5})(\d{3})$/, '$1-$2') : ''
       };
