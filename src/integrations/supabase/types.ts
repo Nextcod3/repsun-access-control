@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       clientes: {
         Row: {
+          cep: string | null
+          cidade: string | null
           created_at: string | null
           documento: string | null
           email: string | null
@@ -23,11 +25,13 @@ export type Database = {
           id: string
           nome: string
           telefone: string
-          uf: string | null
+          uf: string
           updated_at: string | null
           usuario_id: string
         }
         Insert: {
+          cep?: string | null
+          cidade?: string | null
           created_at?: string | null
           documento?: string | null
           email?: string | null
@@ -35,11 +39,13 @@ export type Database = {
           id?: string
           nome: string
           telefone: string
-          uf?: string | null
+          uf: string
           updated_at?: string | null
           usuario_id: string
         }
         Update: {
+          cep?: string | null
+          cidade?: string | null
           created_at?: string | null
           documento?: string | null
           email?: string | null
@@ -47,7 +53,7 @@ export type Database = {
           id?: string
           nome?: string
           telefone?: string
-          uf?: string | null
+          uf?: string
           updated_at?: string | null
           usuario_id?: string
         }
