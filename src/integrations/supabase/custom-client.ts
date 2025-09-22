@@ -13,6 +13,8 @@ export interface Cliente {
   telefone: string;
   email: string | null;
   endereco: string | null;
+  cidade: string | null;
+  cep: string | null;
   documento: string | null;
   uf: string | null;
   usuario_id: string;

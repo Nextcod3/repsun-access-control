@@ -12,8 +12,8 @@ export const clienteSchema = z.object({
   
   documento: z
     .string()
-    .optional()
-    .refine(val => !val || isValidDocument(val), {
+    .min(1, { message: 'Documento é obrigatório' })
+    .refine(val => isValidDocument(val), {
       message: 'Documento inválido. Informe um CPF ou CNPJ válido'
     }),
   
@@ -26,15 +26,23 @@ export const clienteSchema = z.object({
   
   email: z
     .string()
-    .email({ message: 'Email inválido' })
-    .optional()
-    .or(z.literal('')),
+    .min(1, { message: 'Email é obrigatório' })
+    .email({ message: 'Email inválido' }),
   
   endereco: z
     .string()
-    .max(200, { message: 'O endereço deve ter no máximo 200 caracteres' })
-    .optional()
-    .or(z.literal('')),
+    .min(1, { message: 'Endereço é obrigatório' })
+    .max(200, { message: 'O endereço deve ter no máximo 200 caracteres' }),
+  
+  cidade: z
+    .string()
+    .min(1, { message: 'Cidade é obrigatória' })
+    .max(100, { message: 'A cidade deve ter no máximo 100 caracteres' }),
+  
+  cep: z
+    .string()
+    .min(1, { message: 'CEP é obrigatório' })
+    .regex(/^\d{5}-?\d{3}$/, { message: 'CEP inválido. Use o formato 00000-000' }),
   
   uf: z
     .string()

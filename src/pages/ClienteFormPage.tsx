@@ -69,6 +69,8 @@ const ClienteFormPage = () => {
     email: '',
     documento: '',
     endereco: '',
+    cidade: '',
+    cep: '',
     uf: '',
     usuario_id: user?.id || ''
   });
@@ -133,15 +135,9 @@ const ClienteFormPage = () => {
       newErrors.nome = 'Nome é obrigatório';
     }
     
-    if (!formData.telefone?.trim()) {
-      newErrors.telefone = 'Telefone é obrigatório';
-    }
-    
-    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Email inválido';
-    }
-    
-    if (formData.documento) {
+    if (!formData.documento?.trim()) {
+      newErrors.documento = 'Documento é obrigatório';
+    } else {
       const numericDoc = formData.documento.replace(/\D/g, '');
       
       // Validate CPF (11 digits)
@@ -159,9 +155,33 @@ const ClienteFormPage = () => {
         }
       } 
       // Invalid length
-      else if (numericDoc.length > 0) {
+      else {
         newErrors.documento = 'Documento deve ser CPF (11 dígitos) ou CNPJ (14 dígitos)';
       }
+    }
+    
+    if (!formData.telefone?.trim()) {
+      newErrors.telefone = 'Telefone é obrigatório';
+    }
+    
+    if (!formData.email?.trim()) {
+      newErrors.email = 'Email é obrigatório';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Email inválido';
+    }
+    
+    if (!formData.endereco?.trim()) {
+      newErrors.endereco = 'Endereço é obrigatório';
+    }
+    
+    if (!formData.cidade?.trim()) {
+      newErrors.cidade = 'Cidade é obrigatória';
+    }
+    
+    if (!formData.cep?.trim()) {
+      newErrors.cep = 'CEP é obrigatório';
+    } else if (!/^\d{5}-?\d{3}$/.test(formData.cep.replace(/\D/g, '').replace(/^(\d{5})(\d{3})$/, '$1-$2'))) {
+      newErrors.cep = 'CEP inválido. Use o formato 00000-000';
     }
     
     if (!formData.uf) {
@@ -182,10 +202,11 @@ const ClienteFormPage = () => {
     try {
       setSubmitting(true);
       
-      // Format document to remove non-numeric characters
+      // Format document to remove non-numeric characters and format CEP
       const formattedData = {
         ...formData,
-        documento: formData.documento ? formData.documento.replace(/\D/g, '') : null
+        documento: formData.documento ? formData.documento.replace(/\D/g, '') : '',
+        cep: formData.cep ? formData.cep.replace(/\D/g, '').replace(/^(\d{5})(\d{3})$/, '$1-$2') : ''
       };
       
       if (isEditMode && id) {
@@ -281,6 +302,26 @@ const ClienteFormPage = () => {
     }
   };
 
+  const formatCEP = (value: string) => {
+    const numericValue = value.replace(/\D/g, '');
+    
+    // CEP: 00000-000
+    return numericValue
+      .replace(/^(\d{5})/, '$1-')
+      .replace(/^(\d{5})-(\d{3}).*/, '$1-$2');
+  };
+
+  const handleCEPChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = e.target;
+    const formattedValue = formatCEP(value);
+    setFormData(prev => ({ ...prev, cep: formattedValue }));
+    
+    // Clear error when field is edited
+    if (errors.cep) {
+      setErrors(prev => ({ ...prev, cep: '' }));
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -355,7 +396,7 @@ const ClienteFormPage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="documento" className={errors.documento ? 'text-red-500' : ''}>
-                    CPF/CNPJ
+                    CPF/CNPJ <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="documento"
@@ -385,7 +426,7 @@ const ClienteFormPage = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className={errors.email ? 'text-red-500' : ''}>
-                    Email
+                    Email <span className="text-red-500">*</span>
                   </Label>
                   <Input
                     id="email"
@@ -420,9 +461,38 @@ const ClienteFormPage = () => {
                   {errors.uf && <p className="text-red-500 text-sm">{errors.uf}</p>}
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="cidade" className={errors.cidade ? 'text-red-500' : ''}>
+                    Cidade <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="cidade"
+                    name="cidade"
+                    value={formData.cidade || ''}
+                    onChange={handleChange}
+                    className={errors.cidade ? 'border-red-500' : ''}
+                  />
+                  {errors.cidade && <p className="text-red-500 text-sm">{errors.cidade}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cep" className={errors.cep ? 'text-red-500' : ''}>
+                    CEP <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="cep"
+                    name="cep"
+                    value={formData.cep || ''}
+                    onChange={handleCEPChange}
+                    placeholder="00000-000"
+                    className={errors.cep ? 'border-red-500' : ''}
+                  />
+                  {errors.cep && <p className="text-red-500 text-sm">{errors.cep}</p>}
+                </div>
+
                 <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="endereco">
-                    Endereço
+                  <Label htmlFor="endereco" className={errors.endereco ? 'text-red-500' : ''}>
+                    Endereço <span className="text-red-500">*</span>
                   </Label>
                   <Textarea
                     id="endereco"
@@ -430,7 +500,9 @@ const ClienteFormPage = () => {
                     value={formData.endereco || ''}
                     onChange={handleChange}
                     rows={3}
+                    className={errors.endereco ? 'border-red-500' : ''}
                   />
+                  {errors.endereco && <p className="text-red-500 text-sm">{errors.endereco}</p>}
                 </div>
               </div>
 
