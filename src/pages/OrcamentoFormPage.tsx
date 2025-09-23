@@ -467,7 +467,7 @@ const OrcamentoFormPage = () => {
                               {clienteSearchResults.map((cliente) => (
                                 <CommandItem
                                   key={cliente.id}
-                                  value={cliente.id}
+                                  value={`${cliente.nome} ${cliente.documento || ''} ${cliente.email || ''}`}
                                   onSelect={() => handleClienteSelect(cliente)}
                                   className="cursor-pointer"
                                 >

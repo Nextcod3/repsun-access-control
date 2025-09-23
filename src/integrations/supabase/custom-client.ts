@@ -1,11 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './client';
 
-// Cliente customizado para acessar tabelas não tipadas
-export const customSupabase = createClient(
-  'https://broetwrkuceepnqocpiw.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJyb2V0d3JrdWNlZXBucW9jcGl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI3NjA2MTUsImV4cCI6MjA2ODMzNjYxNX0.jwgrsp3OizQLkWRVxicO2PSv8r5-RFmhJlKFJb5jBMM'
-);
-
+// Reutiliza o cliente tipado do Supabase para evitar múltiplas instâncias de auth
+// Mantemos o nome "customSupabase" por compatibilidade com os serviços existentes
+export const customSupabase = supabase as any;
 // Tipos para as tabelas customizadas
 export interface Cliente {
   id: string;
