@@ -45,7 +45,7 @@ export const searchClientes = async (query: string): Promise<Cliente[]> => {
   const { data, error } = await customSupabase
     .from('clientes')
     .select('*')
-    .or(`nome.ilike.%${query}%,documento.ilike.%${query}%`)
+    .or(`nome.ilike.%${query}%,documento.ilike.%${query}%,email.ilike.%${query}%`)
     .order('nome');
 
   if (error) {

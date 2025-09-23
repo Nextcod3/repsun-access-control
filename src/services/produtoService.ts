@@ -45,7 +45,7 @@ export const searchProdutos = async (query: string): Promise<Produto[]> => {
   const { data, error } = await customSupabase
     .from('produtos')
     .select('*')
-    .ilike('nome', `%${query}%`)
+    .or(`nome.ilike.%${query}%,descricao.ilike.%${query}%`)
     .order('nome');
 
   if (error) {
