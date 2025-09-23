@@ -137,7 +137,7 @@ const OrcamentoFormPage = () => {
   const handleClienteSearch = async (term: string) => {
     setClienteSearchTerm(term);
     
-    if (term.length < 2) {
+    if (term.length < 1) {
       setClienteSearchResults([]);
       return;
     }
@@ -168,7 +168,7 @@ const OrcamentoFormPage = () => {
   const handleProdutoSearch = async (term: string) => {
     setProdutoSearchTerm(term);
     
-    if (term.length < 2) {
+    if (term.length < 1) {
       setProdutoSearchResults([]);
       return;
     }

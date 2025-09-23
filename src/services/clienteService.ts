@@ -42,12 +42,10 @@ export const getClienteById = async (id: string): Promise<Cliente | null> => {
  * Busca clientes por nome ou documento
  */
 export const searchClientes = async (query: string): Promise<Cliente[]> => {
-  const searchQuery = `%${query.toLowerCase()}%`;
-  
   const { data, error } = await customSupabase
     .from('clientes')
     .select('*')
-    .or(`nome.ilike.${searchQuery},documento.ilike.${searchQuery}`)
+    .or(`nome.ilike.%${query}%,documento.ilike.%${query}%`)
     .order('nome');
 
   if (error) {
